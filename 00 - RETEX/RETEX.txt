@@ -1,0 +1,96 @@
+
+
+RETEX TRR19 Neunoeil (1) et (2) :
+---------------------------------
+
+Points forts :
+--------------
+* Look 1/10 piste "tunné"
+* Pneus mousse
+* Taille du chassis
+* Poids du chassis
+* Placement des LIDAR
+* Portée, précision et réactivité des LIDAR (TF MiniPlus)
+* Efficacité du LIDAR Haut pour la détection d'arrivée
+* Précision odométrie (vitesse & distance)
+* Fiabilité du tachymètre (hall)
+* Qualité d'image malgré les vibrations du chassis et du support de la caméra
+* Portée Wifi de la Jetson Nano
+* Fiabilité de la reprise en mode manuel avec STM32
+* Capacité à piloter en mode manuel avec STM32
+* Programmation python et remote desktop Linux
+* Précision odométrie passable (mais encourageante)
+
+
+
+
+Points faibles :
+----------------
+* Poids de la charge utile disproportionnée
+* Aérodynamisme
+* Centrage du robot trop haut et trop en avant
+* Vitesse maximale limitée (35km/h)
+* Couple du servo de direction trop faible
+* Trop de jeu mécanique dans la commande de direction
+* Support caméra sujet aux vibrations
+* Filtre polarisant inefficace sur les pavés
+* Connectique et placement des connecteurs sur la carte STM32
+* Plantage occasionnel d'un LIDAR
+* Courant de démarrage des LIDAR
+* Outil de planification de la course (séquencement fin vitesse et position)
+* Outil de récupération du datalogger
+
+
+
+
+A supprimer :
+-------------
+* Filtre polarisant
+
+
+A reconduire :
+--------------
+* LIDAR TFMiniplus
+* Placement LIDAR H
+
+
+Idées d'améliorations :
+----------------------
+* Couverture chauffante 
+* Moteur Brushless
+* Placement des LIDAR (D+G croisés)
+* Ajout d'un LIDAR frontal
+* Remplacer Jetson par RPi (si pas de CNN temps réel)
+* GPS  avec RTK
+* Compas au bout d'un mat
+
+
+Architecture :
+--------------
+* Platine étroite carbone
+* BEC 5V 10A S
+* 3 LIDAR avant
+* Raspberry Pi
+* STM32 (new) :
+	- IMU (I2C)
+	- Compas (I2c)
+	- 1 x serial GPS (UART)
+	- 4 x serial LIDAR
+	- 1 x serial BT/DEBUG
+	- 1 x serial RPi
+	- 4 x IO/AN (Buttons)
+	- Hall (tachymetre)
+	- RX (3 voies)
+	- DIR/THR/AUX (3 voies)
+	- 6 LEDs
+	- Rails d'alimentation 5V séparés et larges
+
+* LIDAR haut
+* Camera dans l'axe avec grand angle (DLVV) montée sur RPi
+* Mat avec GPS et Compas
+* 
+
+
+
+
+
