@@ -39,14 +39,14 @@ Points faibles :
 * Courant de démarrage des LIDAR
 * Outil de planification de la course (séquencement fin vitesse et position)
 * Outil de récupération du datalogger
-
+* Départ avec temporisation pour le bouton
 
 
 
 A supprimer :
 -------------
 * Filtre polarisant
-
+* 
 
 A reconduire :
 --------------
@@ -63,7 +63,8 @@ Idées d'améliorations :
 * Remplacer Jetson par RPi (si pas de CNN temps réel)
 * GPS  avec RTK
 * Compas au bout d'un mat
-
+* Platine allégée (carbone,skelt)
+* Départ en occultant un LIDAR suite à l'appui sur le bouton
 
 Architecture :
 --------------
@@ -91,6 +92,10 @@ Architecture :
 * 
 
 
+Algorithmes:
+------------
+* Un conrtoller par type de section (ligne droite, virage rapide, virage lent, chicane), bascule planfiée avec blending
+* Relocalisation sous la ligne d'arrivée
 
 
 
