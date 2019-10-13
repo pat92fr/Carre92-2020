@@ -153,6 +153,7 @@ class MyApp(ShowBase):
 		self.best_lap_timer_text = OnscreenText(text=str(round(self.best_lap_timer,1)) +"s", pos=(1.4,0.50), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
 		self.lap_counter = 0
 		
+		self.total_distance = 0.0
 		self.lap_distance = 0.0
 		self.lap_distance_text = OnscreenText(text=str(round(self.lap_distance,1)) +"m", pos=(1.7,0.50), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
 
@@ -351,6 +352,11 @@ class MyApp(ShowBase):
 		self.delta_distance = 0.0 # m
 		self.actual_speed_ms = 0.0 # m/s
 		self.actual_speed_kmh = 0.0
+		
+		# simulator manual control
+		self.current_speed_ms = 0.0
+		self.acceleration = 0.02
+		self.deceleration = 0.1
 
 		# simulator steering control state
 		self.last_steering = 0.0       # degree
@@ -504,6 +510,7 @@ class MyApp(ShowBase):
 		# actual speed computation
 		self.current_position = self.chassisNP.getPos()
 		self.delta_distance = (self.current_position-self.last_position).length()
+		self.total_distance += self.delta_distance
 		self.lap_distance += self.delta_distance
 		if  dt != 0:
 			self.actual_speed_ms = self.actual_speed_ms * 0.8 + 0.2 * (self.delta_distance/dt)
@@ -562,58 +569,11 @@ class MyApp(ShowBase):
 			# add picture here
 			# add picture here
 
-			# replace with robot controller call
-			# replace with robot controller call
-			# replace with robot controller call
-			# replace with robot controller call
-
-
-
-
-
-			# speed controller (stage 1)
-			#self.target_speed_ms = self.max_speed_ms
-			self.target_speed_ms = max_speed_from_distance(self.lap_distance)
-
-			# wall following PID controller
-			self.actual_lidar_direction_error = -constraint(self.lidar_distance_droit - self.lidar_distance_gauche, -lidar_maximum_distance, lidar_maximum_distance)/lidar_maximum_distance
-			self.pid_wall = self.pid_wall_following.compute(self.actual_lidar_direction_error)
-
-			# line following PID controller
-			self.line_pos = self.line_pos * (1.0-self.ai_direction_alpha) + self.ai_direction_alpha * self.line_pos_unfiltered
-			self.pid_line = self.pid_line_following.compute(self.line_pos)
-
-			# blending PID
-			self.ratio_ai = 0.0
-			if abs(self.actual_lidar_direction_error) < ration_ai_x1:
-				self.ratio_ai = 0.0
-			elif abs(self.actual_lidar_direction_error) > ration_ai_x2:
-				self.ratio_ai = 1.0
-			else:
-				self.ratio_ai = ( abs(self.actual_lidar_direction_error) - ration_ai_x1 ) / (ration_ai_x2-ration_ai_x1)
-			self.steering = self.ratio_ai * self.pid_wall + (1.0-self.ratio_ai) * self.pid_line
-			print('+'  * int(self.ratio_ai*10.0))
-			self.steering = constraint(self.steering, -1.0, 1.0)
-
-			# reduce current speed according lidar positional error
-			self.target_speed_ms -= ( self.ratio_ai * self.lidar_direction_k_speed * abs(self.actual_lidar_direction_error) + (1.0 - self.ratio_ai) *self.ai_direction_k_speed*abs(self.line_pos_unfiltered) )*self.max_speed_ms 
-			self.target_speed_ms -= self.steering_k_speed*abs(self.steering)*self.max_speed_ms
-			self.target_speed_ms = constraint(self.target_speed_ms, self.min_speed_ms, self.max_speed_ms)
-
-			# compute current speed from target and time passing (trapeze)
-			if self.current_speed_ms < self.target_speed_ms:
-				self.current_speed_ms += self.acceleration
-				self.current_speed_ms = min(self.current_speed_ms, self.target_speed_ms)
-			if self.current_speed_ms > self.target_speed_ms:
-				self.current_speed_ms -= self.deceleration
-				self.current_speed_ms = max(self.current_speed_ms, self.target_speed_ms)
-			self.current_speed_ms = constraint(self.current_speed_ms, self.min_speed_ms, self.max_speed_ms)
-			###print(str(round(self.target_speed_ms,1)) + " m/s  " + str(round(self.current_speed_ms,1)) + " m/s  ")
-
-			# replace with robot controller call
-			# replace with robot controller call
-			# replace with robot controller call
-			# replace with robot controller call
+			# call external robot controller
+			self.steering, self.throttle = self.robot_controller.process(
+				dt,
+				self.actual_speed_ms,
+				self.total_distance )
 
 			# simulator steering
 			self.steering *= self.steering_clamp
@@ -624,16 +584,6 @@ class MyApp(ShowBase):
 				self.steering = max(self.steering, self.last_steering-dt*self.steering_increment)
 			# simulator steering steering clamp
 			self.steering = constraint(self.steering, -self.steering_clamp, self.steering_clamp)
-
-		# compute throttle according actual_speed
-		self.actual_speed_error_ms = self.current_speed_ms-self.actual_speed_ms
-		self.throttle = self.pid_speed.compute(self.actual_speed_error_ms) + self.pid_speed_kff *self.current_speed_ms
-
-
-			# replace with robot controller call
-			# replace with robot controller call
-			# replace with robot controller call
-			# replace with robot controller call
 
 		if self.throttle > 0.0:
 			self.engineForce = self.throttle
@@ -647,8 +597,8 @@ class MyApp(ShowBase):
 			self.engineForce = 0.0
 
 		# Apply steering to front wheels
-		self.vehicle.setSteeringValue(self.steering + self.steering_trim, 0);
-		self.vehicle.setSteeringValue(self.steering + self.steering_trim, 1);
+		self.vehicle.setSteeringValue(self.steering, 0);
+		self.vehicle.setSteeringValue(self.steering, 1);
 
 		# Apply engine and brake to rear wheels
 		self.vehicle.applyEngineForce(self.engineForce, 0);
@@ -662,6 +612,10 @@ class MyApp(ShowBase):
 
 		self.world.doPhysics(dt)
 		#world.doPhysics(dt, 10, 1.0/180.0)
+
+		self.target_image.setPos( (-self.robot_controller.line_pos-0.005, 0.0, 0.0) )
+
+
 		return task.cont
 
 	def load_toulouse_map(self):
@@ -902,21 +856,32 @@ class MyApp(ShowBase):
 
 ## MAIN ########################################################################
 
+print("Init telemetry server...")
 tserver = telemetry_server("192.168.1.34", 7001)
 #tserver = telemetry_server("192.168.43.5", 7001)
+print("Done!")
+
+print("Create dataset file...")
 try:
     mkdir(root_dir+'/'+dataset_dir)
 except FileExistsError:
     pass
 dataset_file = open(root_dir+'/'+dataset_dir+'/'+'dataset.txt',  'w')
+print("Done!")
 
-# init game
+print("Init external robot controller...")
 rc = control.robot_controller(); 
+print("Done!")
+
+
+print("Init sim engine...")
 app = MyApp(rc)
+print("Done!")
 
 # game loop
 counter = 0
 record_counter = 0
+print("Start sim engine loop...")
 while not app.quit:
 	# Non blocking call
 	asyncore.loop(timeout=0, count=1)
@@ -934,11 +899,7 @@ while not app.quit:
 	# reshape for CNN
 	frame = frame.reshape(90,160,1)
 	# use CNN
-	yprediction = model.predict(frame.reshape(1,90,160,1)).item(0)
-	###print(str(counter) + " aiDIR:" + str(yprediction))
-	# push steering from CNN to game
-	app.line_pos_unfiltered = - yprediction
-	app.target_image.setPos( (-app.line_pos-0.005, 0.0, 0.0) )
+	app.robot_controller.frame_update(frame.reshape(1,90,160,1))
 	# dataset recording
 	if app.recording and counter != 0: #and not app.autopilot : # first frame buffer is empty, skip it!
 		filename = dataset_dir + '/render_' + str(record_counter) + '.jpg'

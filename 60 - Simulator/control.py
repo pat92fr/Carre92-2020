@@ -1,6 +1,6 @@
 import my_controller
 
-
+import numpy as np
 from keras import models
 from keras.models import load_model
 
@@ -51,16 +51,17 @@ class robot_controller:
 		self.ratio_ai = 1.0
 
 		# steering settings
-		self.steering_trim = 0
-		self.dual_rate = 0.5
 		self.ration_ai_x1 = 0.3 #
 		self.ration_ai_x2 = 0.5 #
 
-		# open model
-		# print("Load model from disk ...")
-		# model = load_model("model/model.h5")
-		# model.summary()
-		# print("Done.")
+		# open model for AI
+		print("Load model from disk ...")
+		model = load_model("model/model.h5")
+		model.summary()
+		print("Done.")
+
+		# AI input
+		self.frame = np.zeros((1,90,160,1))
 
 	# speed strategy
 	def max_speed_from_distance(self, distance):
@@ -74,3 +75,67 @@ class robot_controller:
 			return max_speed
 		else:
 			return cornering_speed
+
+	def frame_update(self,frame):
+		self.frame = frame
+
+	def process(				
+		dt,
+		actual_speed_ms,
+		total_distance ):
+
+
+		# controlled state
+		steering = 0.0
+		throttle = 0.0
+
+		# speed controller (stage 1)
+		#self.target_speed_ms = self.max_speed_ms
+		self.target_speed_ms = max_speed_from_distance(total_distance)
+
+		# wall following PID controller
+		self.actual_lidar_direction_error = -constraint(self.lidar_distance_droit - self.lidar_distance_gauche, -lidar_maximum_distance, lidar_maximum_distance)/lidar_maximum_distance
+		self.pid_wall = self.pid_wall_following.compute(self.actual_lidar_direction_error)
+
+		# use CNN
+		self.line_pos_unfiltered = - self.model.predict(self.frame).item(0)
+
+		# line following PID controller
+		self.line_pos = self.line_pos * (1.0-self.ai_direction_alpha) + self.ai_direction_alpha * self.line_pos_unfiltered
+		self.pid_line = self.pid_line_following.compute(self.line_pos)
+
+		# blending PID
+		self.ratio_ai = 0.0
+		if abs(self.actual_lidar_direction_error) < ration_ai_x1:
+			self.ratio_ai = 0.0
+		elif abs(self.actual_lidar_direction_error) > ration_ai_x2:
+			self.ratio_ai = 1.0
+		else:
+			self.ratio_ai = ( abs(self.actual_lidar_direction_error) - ration_ai_x1 ) / (ration_ai_x2-ration_ai_x1)
+		steering = self.ratio_ai * self.pid_wall + (1.0-self.ratio_ai) * self.pid_line
+		print('+'  * int(self.ratio_ai*10.0))
+		steering = constraint(self.steering, -1.0, 1.0)
+
+		# reduce current speed according lidar positional error
+		self.target_speed_ms -= ( self.ratio_ai * self.lidar_direction_k_speed * abs(self.actual_lidar_direction_error) + (1.0 - self.ratio_ai) *self.ai_direction_k_speed*abs(self.line_pos_unfiltered) )*self.max_speed_ms 
+		self.target_speed_ms -= self.steering_k_speed*abs(self.steering)*self.max_speed_ms
+		self.target_speed_ms = constraint(self.target_speed_ms, self.min_speed_ms, self.max_speed_ms)
+
+		# compute current speed from target and time passing (trapeze)
+		if self.current_speed_ms < self.target_speed_ms:
+			self.current_speed_ms += self.acceleration
+			self.current_speed_ms = min(self.current_speed_ms, self.target_speed_ms)
+		if self.current_speed_ms > self.target_speed_ms:
+			self.current_speed_ms -= self.deceleration
+			self.current_speed_ms = max(self.current_speed_ms, self.target_speed_ms)
+		self.current_speed_ms = constraint(self.current_speed_ms, self.min_speed_ms, self.max_speed_ms)
+		###print(str(round(self.target_speed_ms,1)) + " m/s  " + str(round(self.current_speed_ms,1)) + " m/s  ")
+
+		# compute throttle according actual_speed
+		self.actual_speed_error_ms = self.current_speed_ms-self.actual_speed_ms
+		throttle = self.pid_speed.compute(self.actual_speed_error_ms) + self.pid_speed_kff *self.current_speed_ms
+
+
+
+		# controlled state
+		return steering, throttle
