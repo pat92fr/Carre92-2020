@@ -355,6 +355,7 @@ class MyApp(ShowBase):
 		
 		# simulator manual control
 		self.current_speed_ms = 0.0
+		self.max_speed_ms = 8.0
 		self.acceleration = 0.02
 		self.deceleration = 0.1
 
@@ -534,14 +535,14 @@ class MyApp(ShowBase):
 
 			# keys to speed
 			if self.up_button and not self.down_button:
-				self.current_speed_ms += self.acceleration
-				self.current_speed_ms = min(self.current_speed_ms, self.max_speed_ms)
+				self.throttle += self.acceleration
+				self.throttle = min(self.throttle, 1.0)
 			if not self.up_button and self.down_button:
-				self.current_speed_ms -= self.deceleration
-				self.current_speed_ms = max(self.current_speed_ms, 0)
+				self.throttle -= self.deceleration
+				self.throttle = max(self.throttle, 0)
 			if not self.up_button and not self.down_button:
-				self.current_speed_ms -= self.deceleration/10.0
-				self.current_speed_ms = max(self.current_speed_ms, 0)
+				self.throttle -= self.deceleration/10.0
+				self.throttle = max(self.throttle, 0)
 			
 			# keys to steering
 			if self.left_button and not self.right_button:
@@ -915,19 +916,19 @@ while not app.quit:
 		msg += str( float(app.lidar_distance_droit) ) + ';'  #cm
 		msg += str( float(app.lidar_distance_haut) ) + ';'  #cm
 
-		msg += str( float(app.actual_lidar_direction_error) ) + ';'
-		msg += str( float(app.pid_wall) ) + ';'
+		msg += str( float(app.robot_controller.actual_lidar_direction_error) ) + ';'
+		msg += str( float(app.robot_controller.pid_wall) ) + ';'
 
-		msg += str( float(app.target_speed_ms) ) + ';'
-		msg += str( float(app.current_speed_ms) ) + ';'
-		msg += str( float(app.actual_speed_ms) ) + ';' 
-		msg += str( float(app.actual_speed_error_ms) ) + ';'
+		msg += str( float(app.robot_controller.target_speed_ms) ) + ';'
+		msg += str( float(app.robot_controller.current_speed_ms) ) + ';'
+		msg += str( float(app.robot_controller.actual_speed_ms) ) + ';' 
+		msg += str( float(app.robot_controller.actual_speed_error_ms) ) + ';'
 		msg += str( float(app.throttle) ) + ';' 
 
-		msg += str( float(app.line_pos) ) + ';'
-		msg += str( float(app.pid_line) ) + ';' 
+		msg += str( float(app.robot_controller.line_pos) ) + ';'
+		msg += str( float(app.robot_controller.pid_line) ) + ';' 
 
-		msg += str( float(app.ratio_ai*10) ) + ';' 
+		msg += str( float(app.robot_controller.ratio_ai*10) ) + ';' 
 
 
 		msg += str( float(app.steering) ) + ';' 
