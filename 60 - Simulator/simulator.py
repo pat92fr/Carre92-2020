@@ -539,10 +539,9 @@ class MyApp(ShowBase):
 				self.throttle = min(self.throttle, 1.0)
 			if not self.up_button and self.down_button:
 				self.throttle -= self.deceleration
-				self.throttle = max(self.throttle, 0)
+				self.throttle = max(self.throttle, -1.0)
 			if not self.up_button and not self.down_button:
-				self.throttle -= self.deceleration/10.0
-				self.throttle = max(self.throttle, 0)
+				self.throttle = 0.0
 			
 			# keys to steering
 			if self.left_button and not self.right_button:
@@ -586,13 +585,13 @@ class MyApp(ShowBase):
 			# simulator steering steering clamp
 			self.steering = constraint(self.steering, -self.steering_clamp, self.steering_clamp)
 
-		if self.throttle > 0.0:
-			self.engineForce = self.throttle
+		if self.throttle >= 0.0:
+			self.engineForce = self.throttle*1.0
 			self.engineForce = min(self.engineForce, 5.0)
 			self.engineForce = max(self.engineForce, 0.0)
 			self.brakeForce = 0.0
 		else:
-			self.brakeForce = -self.throttle
+			self.brakeForce = -self.throttle*1.0
 			self.brakeForce = min(self.brakeForce, 5.0)
 			self.brakeForce = max(self.brakeForce, 0.0)
 			self.engineForce = 0.0
