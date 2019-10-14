@@ -272,30 +272,29 @@ class MyApp(ShowBase):
 		#self.chassisCNP.show()
 
 		# Collision for Lidar settings
-		self.lidar_maximum_distance = 3.5 #m
+		self.lidar_maximum_distance = 10.0 #m
 
 		# Collision for Lidar state
 		self.lidar_distance_droit = self.lidar_maximum_distance
 		self.lidar_distance_haut = self.lidar_maximum_distance
 
 		# Collision solids/nodes for Lidar
-		self.LidarLeftCN = CollisionNode('LidarLeftCN')
-		self.LidarLeftCS = CollisionSegment((-0.1,0.1,0.05),(-self.lidar_maximum_distance*math.sin(math.radians(60)),self.lidar_maximum_distance*math.cos(math.radians(60)),0.0)) 
-		self.LidarLeftCN.addSolid(self.LidarLeftCS)
-		self.LidarLeftCN.setIntoCollideMask(BitMask32.allOff())
-		self.LidarLeftCN.setFromCollideMask(BitMask32.bit(2))
-		self.LidarLeftCNP = self.chassisNP.attachNewNode(self.LidarLeftCN)
-		self.LidarLeftCNP.show()
-
-		# Collision solids/nodes for Lidar
-		self.LidarRightCN = CollisionNode('LidarRightCN')
-		self.LidarRightCS = CollisionSegment((0.1,0.1,0.05),(self.lidar_maximum_distance*math.sin(math.radians(60)),self.lidar_maximum_distance*math.cos(math.radians(60)),0.0)) 
-		self.LidarRightCN.addSolid(self.LidarRightCS)
-		self.LidarRightCN.setIntoCollideMask(BitMask32.allOff())
-		self.LidarRightCN.setFromCollideMask(BitMask32.bit(2))
-		self.LidarRightCNP = self.chassisNP.attachNewNode(self.LidarRightCN)
-		self.LidarRightCNP.show()
-
+		self.LidarCN = []
+		self.LidarCNP = []
+		self.lidar_distance = {}
+		lidar_index = 0
+		for angle in range(-135,+135,5):
+			cn = CollisionNode('LidarCN'+str(angle))
+			cs = CollisionSegment((0.0,0.1,0.05),(-self.lidar_maximum_distance*math.sin(math.radians(angle)),self.lidar_maximum_distance*math.cos(math.radians(angle)),0.0)) 
+			cn.addSolid(cs)
+			cn.setIntoCollideMask(BitMask32.allOff())
+			cn.setFromCollideMask(BitMask32.bit(2))
+			cnp = self.chassisNP.attachNewNode(cn)
+			cnp.show()
+			self.LidarCN.append(cn)
+			self.LidarCNP.append(cnp)
+			print(cnp.node().name)
+			self.lidar_distance[cnp.node().name] = 0.0
 
 		self.chassisNP.setPos(0, 0.0, 0.2)
 		self.chassisNP.setHpr(90, 0.0, 0.0)
@@ -308,8 +307,9 @@ class MyApp(ShowBase):
 		####self.camera.setPos(0.0,-0.15,0.25)
 		###self.camera.setPos(0.0,-2.0,2.0)
 		#self.camera.setPos(0.0,-0.5,0.5)
-		self.camera.setPos(0.0,0.05,0.22) # REFERENCE
-		self.camera.setHpr(0,-20,0)
+		self.camera.setPos(0.0,-0.5,1.5)
+		#self.camera.setPos(0.0,0.05,0.22) # REFERENCE
+		self.camera.setHpr(0,-45,0)
 		self.camera.reparentTo(self.chassisNP)
 
 		# tasks
@@ -319,9 +319,9 @@ class MyApp(ShowBase):
 		self.ctraverser = CollisionTraverser()  # Make a traverser
 		self.cqueue = CollisionHandlerQueue()  # Make a handler
 		self.ctraverser.addCollider(self.chassisCNP, self.cqueue)
-		self.ctraverser.addCollider(self.LidarRightCNP, self.cqueue)
-		self.ctraverser.addCollider(self.LidarLeftCNP, self.cqueue)
-		
+		for cnp in self.LidarCNP:
+			self.ctraverser.addCollider(cnp, self.cqueue)
+
 		# simulator speed control state
 		self.last_position = self.chassisNP.getPos()
 		self.current_position = self.chassisNP.getPos()
@@ -399,19 +399,27 @@ class MyApp(ShowBase):
 		#self.ctraverser.showCollisions(render)
 		self.cqueue.sortEntries()
 		for entry in self.cqueue.getEntries():
+			for cnp in self.LidarCNP:
+				if  entry.getFromNodePath() == cnp:
+					point = entry.getSurfacePoint(render)
+					current = self.chassisNP.getPos()
+					distance = (point-current).length()
+					self.lidar_distance[cnp.node().name] = distance
+
+
 			#print("."+ str(entry))
-			if entry.getFromNodePath() == self.LidarLeftCNP and self.lidar_distance_gauche == self.lidar_maximum_distance:
-				point = entry.getSurfacePoint(render)
-				current = self.chassisNP.getPos()
-				distance = (point-current).length()
-				self.lidar_distance_gauche = distance
-				#print("lidar_distance_gauche:"+ str(self.lidar_distance_gauche))
-			if entry.getFromNodePath() == self.LidarRightCNP  and self.lidar_distance_droit == self.lidar_maximum_distance:
-				point = entry.getSurfacePoint(render)
-				current = self.chassisNP.getPos()
-				distance = (point-current).length()
-				self.lidar_distance_droit = distance
-				#print("lidar_distance_droit:"+ str(self.lidar_distance_droit))
+			# if entry.getFromNodePath() == self.LidarLeftCNP and self.lidar_distance_gauche == self.lidar_maximum_distance:
+			# 	point = entry.getSurfacePoint(render)
+			# 	current = self.chassisNP.getPos()
+			# 	distance = (point-current).length()
+			# 	self.lidar_distance_gauche = distance
+			# 	#print("lidar_distance_gauche:"+ str(self.lidar_distance_gauche))
+			# if entry.getFromNodePath() == self.LidarRightCNP  and self.lidar_distance_droit == self.lidar_maximum_distance:
+			# 	point = entry.getSurfacePoint(render)
+			# 	current = self.chassisNP.getPos()
+			# 	distance = (point-current).length()
+			# 	self.lidar_distance_droit = distance
+			# 	#print("lidar_distance_droit:"+ str(self.lidar_distance_droit))
 			# if entry.getIntoNodePath() == self.archCNP:
 			# 	if globalClock.getFrameTime() > self.lap_timer + 3.0:
 			# 		print(str(round(globalClock.getFrameTime()-self.lap_timer,1)) +"s")
