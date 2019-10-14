@@ -262,10 +262,6 @@ class MyApp(ShowBase):
 		# Collision for Lidar settings
 		self.lidar_maximum_distance = 10.0 #m
 
-		# Collision for Lidar state
-		self.lidar_distance_droit = self.lidar_maximum_distance
-		self.lidar_distance_haut = self.lidar_maximum_distance
-
 		# Collision solids/nodes for Lidar
 		self.LidarCN = []
 		self.LidarCNP = []
@@ -278,13 +274,13 @@ class MyApp(ShowBase):
 			cn.setIntoCollideMask(BitMask32.allOff())
 			cn.setFromCollideMask(BitMask32.bit(2))
 			cnp = self.chassisNP.attachNewNode(cn)
-			cnp.show()
+			#cnp.show()
 			self.LidarCN.append(cn)
 			self.LidarCNP.append(cnp)
 			print(cnp.node().name)
 			self.lidar_distance[cnp.node().name] = 0.0
 
-		self.chassisNP.setPos(0, 0.0, 0.2)
+		self.chassisNP.setPos(0.0, -0.75, 0.2)
 		self.chassisNP.setHpr(90, 0.0, 0.0)
 
 		# camera
@@ -295,7 +291,7 @@ class MyApp(ShowBase):
 		####self.camera.setPos(0.0,-0.15,0.25)
 		###self.camera.setPos(0.0,-2.0,2.0)
 		#self.camera.setPos(0.0,-0.5,0.5)
-		self.camera.setPos(0.0,-0.5,1.5)
+		self.camera.setPos(0.0,-0.5,1.0)
 		#self.camera.setPos(0.0,0.05,0.22) # REFERENCE
 		self.camera.setHpr(0,-45,0)
 		self.camera.reparentTo(self.chassisNP)
@@ -379,20 +375,22 @@ class MyApp(ShowBase):
 		dt = globalClock.getDt()
 
 		# reset wall following state
-		self.lidar_distance_gauche = self.lidar_maximum_distance
-		self.lidar_distance_droit = self.lidar_maximum_distance
-		self.lidar_distance_haut = self.lidar_maximum_distance
+		for ld in self.lidar_distance:
+			self.lidar_distance[ld]=self.lidar_maximum_distance
 
 		self.ctraverser.traverse(render)
-		#self.ctraverser.showCollisions(render)
+		self.ctraverser.showCollisions(render)
 		self.cqueue.sortEntries()
 		for entry in self.cqueue.getEntries():
 			for cnp in self.LidarCNP:
 				if  entry.getFromNodePath() == cnp:
 					point = entry.getSurfacePoint(render)
 					current = self.chassisNP.getPos()
+					#current = cnp.getPos()
 					distance = (point-current).length()
 					self.lidar_distance[cnp.node().name] = distance
+		print(self.lidar_distance)
+# TODO : construire un vecteur avec par défaut la distance max et si collision, la distance mesurée
 
 
 			#print("."+ str(entry))
@@ -576,7 +574,6 @@ class MyApp(ShowBase):
 
 	def load_MKP_map(self):
 
-
         # load the environment model.
 		self.scene = self.loader.loadModel("/c/tmp/mediaMKP/env")
 		self.scene.reparentTo(self.render)
@@ -636,7 +633,7 @@ class MyApp(ShowBase):
 		self.recording = True
 
 	def setHome(self):
-		self.chassisNP.setPos(0, 0.0, 0.4)
+		self.chassisNP.setPos(0.0, -0.75, 0.2)
 		self.chassisNP.setHpr(90, 0.0, 0.0)
 		self.lap_counter = 0
 		self.total_distance = 0
@@ -719,9 +716,6 @@ while not app.quit:
 	if True:
 	#if counter % 2 == 0:
 		msg = str(int(counter/2)) + ';'
-		msg += str( float(app.lidar_distance_gauche) ) + ';' #cm
-		msg += str( float(app.lidar_distance_droit) ) + ';'  #cm
-		msg += str( float(app.lidar_distance_haut) ) + ';'  #cm
 
 		msg += str( float(app.robot_controller.actual_lidar_direction_error) ) + ';'
 		msg += str( float(app.robot_controller.pid_wall) ) + ';'
