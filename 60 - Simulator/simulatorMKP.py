@@ -117,15 +117,9 @@ class MyApp(ShowBase):
 		# external robot controller
 		self.robot_controller = rc
 
-        # Check video card capabilities.
-		if not self.win.getGsg().getSupportsBasicShaders():
-			addTitle("Bump Mapping: "
-				"Video driver reports that Cg shaders are not supported.")
-			return
-
         # Window
 		winprops = WindowProperties()
-		winprops.setSize(1280, 720)
+		winprops.setSize(1024, 576)
 		base.win.requestProperties(winprops) 
 		base.setFrameRateMeter(True)
 
@@ -195,12 +189,6 @@ class MyApp(ShowBase):
 
         # Disable the camera trackball controls.
 		self.disableMouse()
-
-        # load the environment model.
-		self.scene = self.loader.loadModel("/c/tmp/mediaMKP/env")
-		self.scene.reparentTo(self.render)
-		self.scene.setScale(20, 20, 20)
-		self.scene.setPos(0.0, 0.0, -0.001)
 
 		# load map
 		self.load_MKP_map()
@@ -331,9 +319,9 @@ class MyApp(ShowBase):
 		
 		# simulator manual control
 		self.current_speed_ms = 0.0
-		self.max_speed_ms = 8.0
+		self.max_speed_ms = 3.0
 		self.acceleration = 0.02
-		self.deceleration = 0.1
+		self.deceleration = 0.02
 
 		# simulator steering control state
 		self.last_steering = 0.0       # degree
@@ -588,71 +576,44 @@ class MyApp(ShowBase):
 
 	def load_MKP_map(self):
 
+
+        # load the environment model.
+		self.scene = self.loader.loadModel("/c/tmp/mediaMKP/env")
+		self.scene.reparentTo(self.render)
+		self.scene.setScale(20, 20, 20)
+		self.scene.setPos(0.0, 0.0, -0.001)
+
         # load circuit model
 		self.groundNodePath = self.loader.loadModel("/c/tmp/mediaMKP/ground.bam")
 		self.bordersNodePath = self.loader.loadModel("/c/tmp/mediaMKP/borders.bam")
 		self.bordersNodePath.setCollideMask(BitMask32.bit(2))
-
-		# create material
-		self.lowSpecMaterial = Material()
-		self.lowSpecMaterial.setSpecular((0.02, 0.02, 0.02, 1))
-		self.lowSpecMaterial.setShininess(60) #Make this material shiny
-
-		self.hiSpecMaterial = Material()
-		self.hiSpecMaterial.setSpecular((0.9, 0.9, 0.9, 1))
-		self.hiSpecMaterial.setShininess(80) #Make this material shiny
-
-		#apply material
-		self.groundNodePath.setMaterial(self.hiSpecMaterial, 1)
-		self.bordersNodePath.setMaterial(self.lowSpecMaterial, 1)
-
+		self.bordertopNodePath = self.loader.loadModel("/c/tmp/mediaMKP/bordertop.bam")
         #
 		self.circuitNodePath = NodePath('circuit')
 		self.groundNodePath.reparentTo(self.circuitNodePath)
 		self.bordersNodePath.reparentTo(self.circuitNodePath)
+		self.bordertopNodePath.reparentTo(self.circuitNodePath)
 
 		self.circuitNodePath.reparentTo(self.render)
 		self.circuitNodePath.setScale(1.0, 1.0, 1.0)
 		self.circuitNodePath.setPos(0.0,0.0,0.2)
 		self.circuitNodePath.setHpr(0,180, 0)
 
-		# Collision solids/nodes for arch
-		self.archCN = CollisionNode('archCNP')
-		self.archCS = CollisionBox((-9.0,0.0,1.0), 0.2, 1.0, 1.0)
-		self.archCN.addSolid(self.archCS)
-		#self.archCN.show()
-		self.archCN.setIntoCollideMask(BitMask32.bit(1))
-		self.archCN.setFromCollideMask(BitMask32.allOff())
-		###################self.archCNP = self.archNodePath.attachNewNode(self.archCN)
-		#self.archCNP.show()
-
         # Lights
 		self.render.clearLight()
 
 		self.alight = AmbientLight('ambientLight')
-		self.alight.setColor(Vec4(0.0, 0.0, 0.0, 1))
+		self.alight.setColor(Vec4(0.5, 0.5, 0.5, 1))
 		self.alightNP = self.render.attachNewNode(self.alight)
+		self.render.setLight(self.alightNP)
 
 		self.directionalLight = DirectionalLight('directionalLight')
 		self.directionalLight.setDirection(Vec3(1, 1, -2))
 		self.directionalLight.setSpecularColor((0.8, 0.8, 0.8, 1))
 		self.temperature = 6500
-		self.temperature_step = 1
 		self.directionalLight.setColorTemperature(self.temperature)
 		self.directionalLightNP = self.render.attachNewNode(self.directionalLight)
-
-		self.plight = PointLight('spot1Light')
-		self.plight.setColor(Vec4(1.0, 1.0, 1.0, 1.0))
-		self.plight.setAttenuation(LVector3(0.7, 0.05, 0))
-		self.plnp = self.render.attachNewNode(self.plight)
-		self.plnp.setPos((0, 0, 1.0))
-
-        # Tell Panda that it should generate shaders performing per-pixel
-        # lighting for the room.
-		self.render.setLight(self.plnp)
 		self.render.setLight(self.directionalLightNP)
-		#self.circuitNodePath.setShaderAuto()
-		self.render.setLight(self.alightNP)
 
         # Per-pixel lighting and shadows are initially off
 		#self.directionalLightNP.node().setShadowCaster(True, 512, 512)
@@ -704,7 +665,8 @@ class MyApp(ShowBase):
 
 print("Init telemetry server...")
 #tserver = telemetry_server("192.168.1.34", 7001)
-tserver = telemetry_server("192.168.43.5", 7001)
+#tserver = telemetry_server("192.168.43.5", 7001)
+tserver = telemetry_server("192.168.1.11", 7001)
 print("Done!")
 
 print("Create dataset file...")
