@@ -15,7 +15,7 @@ dataset_dir = 'dataset'
 ### https://github.com/jlevy44/UnrealAI/blob/master/CarAI/joshua_work/game/src/simulation.py
 
 from my_math import *
-import control
+import controlMKP
 
 import numpy as np
 import math
@@ -139,13 +139,8 @@ class MyApp(ShowBase):
 		self.manualText = genLabelText("m: Manualpilot", 2)
 		self.recordText = genLabelText("r: Record", 3)
 		self.homeText = genLabelText("h: Home", 4)
-		self.shadowText = genLabelText("s: Ground shadows", 5)
-		self.publicityText = genLabelText("p: Side publicity and shadows", 6)
-		self.lightText = genLabelText("l: Overall Lightning", 7)
 
 		# OSD graphics
-		self.target_image = OnscreenImage(image = '/c/tmp/media/cross.png', pos = (-0.005, 0.0, 0.0), scale = (0.05, 0.05, 0.05), )
-		self.target_image.setTransparency(TransparencyAttrib.MAlpha)
 		self.speed_o_meter = OnscreenText(text="0km/h", pos=(1.4,0.80), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.25)
 		self.lap_timer = globalClock.getFrameTime()
 		self.lap_timer_text = OnscreenText(text=str(round(globalClock.getFrameTime(),1)) +"s", pos=(1.4,0.60), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.15)
@@ -161,40 +156,25 @@ class MyApp(ShowBase):
 		self.heading = 0.0
 		self.heading_text = OnscreenText(text=str(int(self.heading)) +"deg", pos=(1.7,0.4), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
 
-		self.slider_max_speed = DirectSlider(range=(0,10), value=self.robot_controller.max_speed_ms, pageSize=0.1, command=self.slider_max_speed_change, scale=0.4, pos = (0.0,0.0,0.9))
-		self.text_max_speed = OnscreenText(text="Vmax " + str(self.robot_controller.max_speed_ms)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.9))
+		self.slider_max_speed = DirectSlider(range=(0,10), value=self.robot_controller.max_speed_ms, pageSize=0.1, command=self.slider_max_speed_change, scale=0.4, pos = (0.0,0.0,0.90))
+		self.text_max_speed = OnscreenText(text="Vmax " + str(self.robot_controller.max_speed_ms)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.90))
 		
-		self.slider_ai_direction_kp = DirectSlider(range=(0,3), value=self.robot_controller.pid_line_following.kp, pageSize=0.1, command=self.slider_ai_direction_kp_change, scale=0.4, pos = (0.0,0.0,0.85))
-		self.text_ai_direction_kp = OnscreenText(text="AI Direction Kp " + str(round(self.robot_controller.pid_line_following.kp,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.85))
+		self.slider_steering_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.steering_k_speed, pageSize=0.1, command=self.slider_steering_k_speed_change, scale=0.4, pos = (0.0,0.0,0.85))
+		self.text_steering_k_speed = OnscreenText(text="Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.85))
 
-		self.slider_ai_direction_kd = DirectSlider(range=(0,30), value=self.robot_controller.pid_line_following.kd, pageSize=0.1, command=self.slider_ai_direction_kd_change, scale=0.4, pos = (0.0,0.0,0.80))
-		self.text_ai_direction_kd = OnscreenText(text="AI Direction Kd " + str(round(self.robot_controller.pid_line_following.kd,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.80))
+		self.slider_lidar_direction_kp = DirectSlider(range=(0,3), value=self.robot_controller.pid_wall_following.kp, pageSize=0.1, command=self.slider_lidar_direction_kp_change, scale=0.4, pos = (0.0,0.0,0.80))
+		self.text_lidar_direction_kp = OnscreenText(text="Lidar Direction Kp " + str(round(self.robot_controller.pid_wall_following.kp,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.80))
 
-		self.slider_steering_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.steering_k_speed, pageSize=0.1, command=self.slider_steering_k_speed_change, scale=0.4, pos = (0.0,0.0,0.75))
-		self.text_steering_k_speed = OnscreenText(text="Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.75))
+		self.slider_lidar_direction_kd = DirectSlider(range=(0,30), value=self.robot_controller.pid_wall_following.kd, pageSize=0.1, command=self.slider_lidar_direction_kd_change, scale=0.4, pos = (0.0,0.0,0.75))
+		self.text_lidar_direction_kd = OnscreenText(text="Lidar Direction Kd " + str(round(self.robot_controller.pid_wall_following.kd,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.75))
 
-		self.slider_ai_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.ai_direction_k_speed, pageSize=0.1, command=self.slider_ai_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.70))
-		self.text_ai_direction_k_speed = OnscreenText(text="AI Direction K speed " + str(round(self.robot_controller.ai_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.70))
-
-		self.slider_ai_direction_alpha = DirectSlider(range=(0,1), value=self.robot_controller.ai_direction_alpha, pageSize=0.01, command=self.slider_ai_direction_alpha_change, scale=0.4, pos = (0.0,0.0,0.65))
-		self.text_ai_direction_alpha = OnscreenText(text="AI Direction Alpha " + str(round(self.robot_controller.ai_direction_alpha,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.65))
-
-		self.slider_lidar_direction_kp = DirectSlider(range=(0,3), value=self.robot_controller.pid_wall_following.kp, pageSize=0.1, command=self.slider_lidar_direction_kp_change, scale=0.4, pos = (0.0,0.0,0.60))
-		self.text_lidar_direction_kp = OnscreenText(text="Lidar Direction Kp " + str(round(self.robot_controller.pid_wall_following.kp,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.60))
-
-		self.slider_lidar_direction_kd = DirectSlider(range=(0,30), value=self.robot_controller.pid_wall_following.kd, pageSize=0.1, command=self.slider_lidar_direction_kd_change, scale=0.4, pos = (0.0,0.0,0.55))
-		self.text_lidar_direction_kd = OnscreenText(text="Lidar Direction Kd " + str(round(self.robot_controller.pid_wall_following.kd,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.55))
-
-		self.slider_lidar_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.lidar_direction_k_speed, pageSize=0.1, command=self.slider_lidar_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.50))
-		self.text_lidar_direction_k_speed = OnscreenText(text="Lidar Direction K speed " + str(round(self.robot_controller.lidar_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.50))
+		self.slider_lidar_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.lidar_direction_k_speed, pageSize=0.1, command=self.slider_lidar_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.70))
+		self.text_lidar_direction_k_speed = OnscreenText(text="Lidar Direction K speed " + str(round(self.robot_controller.lidar_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.70))
 
         # application state
 		self.quit = False
 		self.autopilot = False
 		self.recording = False
-		self.apply_ground_shadow = False
-		self.apply_side_publicity_and_shadow = False
-		self.apply_light_modifier = False
 
 		# keyboard events
 		self.accept("q",     self.doQuit)
@@ -202,9 +182,6 @@ class MyApp(ShowBase):
 		self.accept("m",     self.doManualpilot)
 		self.accept("r",     self.doRecord)
 		self.accept("h",     self.setHome)
-		self.accept("s",     self.setGroundShadow)
-		self.accept("p",     self.setSidePublicityAndShadow)
-		self.accept("l",     self.setLightModifier)
 
         # gamepad
 		self.gamepad = None
@@ -220,13 +197,13 @@ class MyApp(ShowBase):
 		self.disableMouse()
 
         # load the environment model.
-		self.scene = self.loader.loadModel("/c/tmp/media/env")
+		self.scene = self.loader.loadModel("/c/tmp/mediaMKP/env")
 		self.scene.reparentTo(self.render)
-		self.scene.setScale(35, 35, 35)
-		self.scene.setPos(0,25, -0.01)
+		self.scene.setScale(20, 20, 20)
+		self.scene.setPos(0.0, 0.0, -0.001)
 
 		# load map
-		self.load_toulouse_map()
+		self.load_MKP_map()
 
 		# physics
 		# debugNode = BulletDebugNode('Debug')
@@ -260,7 +237,7 @@ class MyApp(ShowBase):
 		self.chassisNP = self.worldNP.attachNewNode(self.chassisPhysNode)
 		self.world.attachRigidBody(self.chassisPhysNode)
 
-		model = loader.loadModel('/c/tmp/media/chassis.bam')
+		model = loader.loadModel('/c/tmp/mediaMKP/chassis.bam')
 		model.setHpr(0, 90, 0)
 		model.setPos(0, 0, 0.02)
 		model.reparentTo(self.chassisNP)
@@ -269,19 +246,19 @@ class MyApp(ShowBase):
 		self.vehicle.setCoordinateSystem(bullet.ZUp)
 		self.world.attachVehicle(self.vehicle)
 
-		FRwheelNP = loader.loadModel('/c/tmp/media/wheel.bam')
+		FRwheelNP = loader.loadModel('/c/tmp/mediaMKP/wheel.bam')
 		FRwheelNP.reparentTo(self.worldNP)
 		self.addWheel(Point3(0.10, 0.14, 0.40), True, FRwheelNP)
 
-		FLwheelNP = loader.loadModel('/c/tmp/media/wheel.bam')
+		FLwheelNP = loader.loadModel('/c/tmp/mediaMKP/wheel.bam')
 		FLwheelNP.reparentTo(self.worldNP)
 		self.addWheel(Point3(-0.10, 0.14, 0.40), True, FLwheelNP)
 
-		RRwheelNP = loader.loadModel('/c/tmp/media/wheel.bam')
+		RRwheelNP = loader.loadModel('/c/tmp/mediaMKP/wheel.bam')
 		RRwheelNP.reparentTo(self.worldNP)
 		self.addWheel(Point3(0.10, -0.14, 0.40), False, RRwheelNP)
 
-		RLwheelNP = loader.loadModel('/c/tmp/media/wheel.bam')
+		RLwheelNP = loader.loadModel('/c/tmp/mediaMKP/wheel.bam')
 		RLwheelNP.reparentTo(self.worldNP)
 		self.addWheel(Point3(-0.10, -0.14, 0.40), False, RLwheelNP)
 
@@ -319,9 +296,9 @@ class MyApp(ShowBase):
 		self.LidarRightCNP = self.chassisNP.attachNewNode(self.LidarRightCN)
 		self.LidarRightCNP.show()
 
-		#self.chassisNP.setPos(0, 40.0, 0.05)
-		self.chassisNP.setPos(0, 10.0, 0.2)
-		self.chassisNP.setHpr(180, 0.0, 0.0)
+
+		self.chassisNP.setPos(0, 0.0, 0.2)
+		self.chassisNP.setHpr(90, 0.0, 0.0)
 
 		# camera
 		self.camLens.setFov(100)
@@ -336,7 +313,6 @@ class MyApp(ShowBase):
 		self.camera.reparentTo(self.chassisNP)
 
 		# tasks
-		self.taskMgr.add(self.update_toulouse_map, 'updateMap')
 		self.taskMgr.add(self.physics_task, 'updatePhysics')
 
 		# Collisions
@@ -370,30 +346,13 @@ class MyApp(ShowBase):
 		self.engineForce = 0.0
 		self.brakeForce = 0.0
 
-
 	def slider_max_speed_change(self):
 		self.robot_controller.max_speed_ms = float(self.slider_max_speed['value'])
 		self.text_max_speed.setText("Vmax " + str(round(self.robot_controller.max_speed_ms,1))+"m/s")
 
-	def slider_ai_direction_kp_change(self):
-		self.robot_controller.pid_line_following.kp = float(self.slider_ai_direction_kp['value'])
-		self.text_ai_direction_kp.setText("AI Direction Kp " + str(round(self.robot_controller.pid_line_following.kp,1)))
-
-	def slider_ai_direction_kd_change(self):
-		self.robot_controller.pid_line_following.kd = float(self.slider_ai_direction_kd['value'])
-		self.text_ai_direction_kd.setText("AI Direction Kd " + str(round(self.robot_controller.pid_line_following.kd,1)))
-
 	def slider_steering_k_speed_change(self):
 		self.robot_controller.steering_k_speed = float(self.slider_steering_k_speed['value'])
 		self.text_steering_k_speed.setText("Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)))
-
-	def slider_ai_direction_k_speed_change(self):
-		self.robot_controller.ai_direction_k_speed = float(self.slider_ai_direction_k_speed['value'])
-		self.text_ai_direction_k_speed.setText("AI Direction K speed " + str(round(self.robot_controller.ai_direction_k_speed,2)))
-
-	def slider_ai_direction_alpha_change(self):
-		self.robot_controller.ai_direction_alpha = float(self.slider_ai_direction_alpha['value'])
-		self.text_ai_direction_alpha.setText("AI Direction Alpha " + str(round(self.robot_controller.ai_direction_alpha,2)))
 
 	def slider_lidar_direction_kp_change(self):
 		self.robot_controller.pid_wall_following.kp = float(self.slider_lidar_direction_kp['value'])
@@ -453,14 +412,14 @@ class MyApp(ShowBase):
 				distance = (point-current).length()
 				self.lidar_distance_droit = distance
 				#print("lidar_distance_droit:"+ str(self.lidar_distance_droit))
-			if entry.getIntoNodePath() == self.archCNP:
-				if globalClock.getFrameTime() > self.lap_timer + 3.0:
-					print(str(round(globalClock.getFrameTime()-self.lap_timer,1)) +"s")
-					if self.lap_counter > 0:
-						self.best_lap_timer = min(globalClock.getFrameTime()-self.lap_timer,self.best_lap_timer)
-					self.lap_timer = globalClock.getFrameTime()
-					self.lap_counter += 1
-					self.lap_distance = 0.0
+			# if entry.getIntoNodePath() == self.archCNP:
+			# 	if globalClock.getFrameTime() > self.lap_timer + 3.0:
+			# 		print(str(round(globalClock.getFrameTime()-self.lap_timer,1)) +"s")
+			# 		if self.lap_counter > 0:
+			# 			self.best_lap_timer = min(globalClock.getFrameTime()-self.lap_timer,self.best_lap_timer)
+			# 		self.lap_timer = globalClock.getFrameTime()
+			# 		self.lap_counter += 1
+			# 		self.lap_distance = 0.0
 		self.lap_timer_text.setText(text=str(round(globalClock.getFrameTime()-self.lap_timer,1)) +"s")
 		self.best_lap_timer_text.setText(text=str(round(self.best_lap_timer,1)) +"s")
 
@@ -617,83 +576,14 @@ class MyApp(ShowBase):
 		self.world.doPhysics(dt)
 		#world.doPhysics(dt, 10, 1.0/180.0)
 
-		self.target_image.setPos( (-self.robot_controller.line_pos-0.005, 0.0, 0.0) )
-
-
 		return task.cont
 
-	def load_toulouse_map(self):
+	def load_MKP_map(self):
 
         # load circuit model
-		self.solNodePath = self.loader.loadModel("/c/tmp/media/sol.bam")
-		self.lignenoireNodePath = self.loader.loadModel("/c/tmp/media/lignenoire.bam")
-		self.ligneblancheNodePath = self.loader.loadModel("/c/tmp/media/ligneblanche.bam")
-		self.bordureNodePath = self.loader.loadModel("/c/tmp/media/bordure.bam")
-		self.bordureNodePath.setCollideMask(BitMask32.bit(2))
-		self.archNodePath = self.loader.loadModel("/c/tmp/media/arch.bam")
-
-		# print(str(TextureStage.getDefault()))
-		# print(str(self.solNodePath.findAllTextureStages()))
-		# print(str(self.solNodePath.findTextureStage('*')))
-		# print(str(self.solNodePath.findAllTextures()))
-
-		# replace base texture for sol
-		tex1 = loader.loadTexture('/c/tmp/media/sol_toulouse.jpg')
-		#tex1 = loader.loadTexture('/c/tmp/media/sol_NormalMap.jpg')
-		#tex1 = loader.loadTexture('/c/tmp/media/sol_DisplacementMap.jpg')
-		self.ts1 = self.solNodePath.findTextureStage('0')
-		self.ts1.setTexcoordName('0')
-		self.solNodePath.setTexture(self.ts1, tex1, 1)
-
-		# add texture for illumination of sol
-		self.sol_no_shadow_texture = loader.loadTexture('/c/tmp/media/no_shadow.png')
-		self.sol_shadow_textures = [ 
-			loader.loadTexture('/c/tmp/media/sol_shadow_1.png'),
-			loader.loadTexture('/c/tmp/media/sol_shadow_2.png'),
-			loader.loadTexture('/c/tmp/media/sol_shadow_3.png'),
-			loader.loadTexture('/c/tmp/media/sol_shadow_4.png'),
-			loader.loadTexture('/c/tmp/media/sol_shadow_5.png'),
-			loader.loadTexture('/c/tmp/media/sol_shadow_6.png'),
-			loader.loadTexture('/c/tmp/media/sol_shadow_7.png')
-		]
-		self.sol_shadow_texture_index = 0
-		self.ts2 = TextureStage('solTS')
-		self.ts2.setMode(TextureStage.MModulate)
-		self.ts2.setTexcoordName('0')
-		self.ts2.setColor(LColor(0,0,0,1))
-		self.solNodePath.setTexture(self.ts2, self.sol_no_shadow_texture)
-
-		# add texture for normalmap of sol
-		tex4 = loader.loadTexture('/c/tmp/media/sol_NormalMap.jpg','/c/tmp/media/sol_DisplacementMap.jpg')
-		ts4 = TextureStage('solTSNM')
-		ts4.setMode(TextureStage.MNormalHeight)
-		ts4.setTexcoordName('0')
-		#self.solNodePath.setTexture(ts4, tex4)
-
-
-		# replace base texture for side
-		self.side_base_texture_no_publicity = loader.loadTexture('/c/tmp/media/2create_wood_0019o.jpg')
-		self.side_base_texture_with_publicity = loader.loadTexture('/c/tmp/media/2create_wood_0019.jpg')
-		self.ts4 = self.bordureNodePath.findTextureStage('0')
-		self.ts4.setTexcoordName('0')
-		self.bordureNodePath.setTexture(self.ts4, self.side_base_texture_no_publicity, 1)
-
-		# add texture for illumination of bordure
-		self.side_no_shadow_texture = loader.loadTexture('/c/tmp/media/no_shadow.png')
-		self.side_shadow_texture = loader.loadTexture('/c/tmp/media/side_shadow.png')
-		self.ts3 = TextureStage('sideTS')
-		self.ts3.setMode(TextureStage.MModulate)
-		self.ts3.setTexcoordName('0')
-		self.ts3.setColor(LColor(0,0,0,1))
-		self.bordureNodePath.setTexture(self.ts3, self.side_no_shadow_texture)
-
-		# print(str(self.solNodePath.findAllTextureStages()))
-		# print(str(self.solNodePath.findTextureStage('0')))
-		# print(str(self.solNodePath.findTextureStage('solTS')))
-		# print(str(self.solNodePath.findTextureStage('solTSNM')))
-		# print(str(self.solNodePath.findAllTextures()))
-
-		# NormalMap https://cpetry.github.io/NormalMap-Online/
+		self.groundNodePath = self.loader.loadModel("/c/tmp/mediaMKP/ground.bam")
+		self.bordersNodePath = self.loader.loadModel("/c/tmp/mediaMKP/borders.bam")
+		self.bordersNodePath.setCollideMask(BitMask32.bit(2))
 
 		# create material
 		self.lowSpecMaterial = Material()
@@ -705,24 +595,18 @@ class MyApp(ShowBase):
 		self.hiSpecMaterial.setShininess(80) #Make this material shiny
 
 		#apply material
-		self.solNodePath.setMaterial(self.lowSpecMaterial, 1)
-		self.lignenoireNodePath.setMaterial(self.hiSpecMaterial, 1)
-		self.ligneblancheNodePath.setMaterial(self.hiSpecMaterial, 1)
-		self.bordureNodePath.setMaterial(self.lowSpecMaterial, 1)
-		self.archNodePath.setMaterial(self.lowSpecMaterial, 1)
+		self.groundNodePath.setMaterial(self.hiSpecMaterial, 1)
+		self.bordersNodePath.setMaterial(self.lowSpecMaterial, 1)
 
         #
 		self.circuitNodePath = NodePath('circuit')
-		self.solNodePath.reparentTo(self.circuitNodePath)
-		self.lignenoireNodePath.reparentTo(self.circuitNodePath)
-		self.ligneblancheNodePath.reparentTo(self.circuitNodePath)
-		self.bordureNodePath.reparentTo(self.circuitNodePath)
-		self.archNodePath.reparentTo(self.circuitNodePath)
+		self.groundNodePath.reparentTo(self.circuitNodePath)
+		self.bordersNodePath.reparentTo(self.circuitNodePath)
 
 		self.circuitNodePath.reparentTo(self.render)
 		self.circuitNodePath.setScale(1.0, 1.0, 1.0)
-		self.circuitNodePath.setPos(1.0,-5.0,-0.01)
-		self.circuitNodePath.setHpr(0,90, 270)
+		self.circuitNodePath.setPos(0.0,0.0,0.2)
+		self.circuitNodePath.setHpr(0,180, 0)
 
 		# Collision solids/nodes for arch
 		self.archCN = CollisionNode('archCNP')
@@ -731,14 +615,14 @@ class MyApp(ShowBase):
 		#self.archCN.show()
 		self.archCN.setIntoCollideMask(BitMask32.bit(1))
 		self.archCN.setFromCollideMask(BitMask32.allOff())
-		self.archCNP = self.archNodePath.attachNewNode(self.archCN)
+		###################self.archCNP = self.archNodePath.attachNewNode(self.archCN)
 		#self.archCNP.show()
 
         # Lights
 		self.render.clearLight()
 
 		self.alight = AmbientLight('ambientLight')
-		self.alight.setColor(Vec4(0.4, 0.4, 0.4, 1))
+		self.alight.setColor(Vec4(0.0, 0.0, 0.0, 1))
 		self.alightNP = self.render.attachNewNode(self.alight)
 
 		self.directionalLight = DirectionalLight('directionalLight')
@@ -766,32 +650,6 @@ class MyApp(ShowBase):
 		#self.directionalLightNP.node().setShadowCaster(True, 512, 512)
 		self.render.setShaderAuto()
 
-	def update_toulouse_map(self, task):
-
-		if task.frame % 200 == 0:
-			if self.apply_ground_shadow:
-				self.sol_shadow_texture_index += 1
-				if self.sol_shadow_texture_index >= len(self.sol_shadow_textures):
-					self.sol_shadow_texture_index = 0
-				self.solNodePath.setTexture(self.ts2, self.sol_shadow_textures[self.sol_shadow_texture_index])
-
-		#print(str(self.temperature))
-		if self.apply_light_modifier:
-			if self.temperature_step > 0:
-				self.temperature += self.temperature_step*10
-				self.directionalLight.setColorTemperature(self.temperature)
-				self.plight.setColorTemperature(self.temperature)
-				if self.temperature > 11900:
-					self.temperature_step = -1
-			else:
-				self.temperature += self.temperature_step*10
-				self.directionalLight.setColorTemperature(self.temperature)
-				self.plight.setColorTemperature(self.temperature)
-				if self.temperature < 1100:
-					self.temperature_step = 1
-		
-		return Task.cont
-
 	def doQuit(self):
         # De-initialization code goes here!
 		self.quit = True
@@ -808,35 +666,9 @@ class MyApp(ShowBase):
         # De-initialization code goes here!
 		self.recording = True
 
-	def setGroundShadow(self):
-		if self.apply_ground_shadow:
-			self.apply_ground_shadow = False
-			self.solNodePath.setTexture(self.ts2, self.sol_no_shadow_texture)
-		else:
-			self.apply_ground_shadow = True
-			self.sol_shadow_texture_index = 0
-			self.solNodePath.setTexture(self.ts2, self.sol_shadow_textures[self.sol_shadow_texture_index])
-			self.sol_shadow_texture_index += 1
-
-	def setSidePublicityAndShadow(self):
-		if self.apply_side_publicity_and_shadow:
-			self.apply_side_publicity_and_shadow = False
-			self.bordureNodePath.setTexture(self.ts3, self.side_no_shadow_texture)
-			self.bordureNodePath.setTexture(self.ts4, self.side_base_texture_no_publicity, 1)
-		else:
-			self.apply_side_publicity_and_shadow = True
-			self.bordureNodePath.setTexture(self.ts3, self.side_shadow_texture)
-			self.bordureNodePath.setTexture(self.ts4, self.side_base_texture_with_publicity, 1)
-
-	def setLightModifier(self):
-		if self.apply_light_modifier:
-			self.apply_light_modifier = False
-		else:
-			self.apply_light_modifier = True
-
 	def setHome(self):
-		self.chassisNP.setPos(0, 10.0, 0.2)
-		self.chassisNP.setHpr(180, 0.0, 0.0)
+		self.chassisNP.setPos(0, 0.0, 0.4)
+		self.chassisNP.setHpr(90, 0.0, 0.0)
 		self.lap_counter = 0
 		self.total_distance = 0
 		self.lap_distance = 0
@@ -863,8 +695,8 @@ class MyApp(ShowBase):
 ## MAIN ########################################################################
 
 print("Init telemetry server...")
-tserver = telemetry_server("192.168.1.34", 7001)
-#tserver = telemetry_server("192.168.43.5", 7001)
+#tserver = telemetry_server("192.168.1.34", 7001)
+tserver = telemetry_server("192.168.43.5", 7001)
 print("Done!")
 
 print("Create dataset file...")
@@ -876,7 +708,7 @@ dataset_file = open(root_dir+'/'+dataset_dir+'/'+'dataset.txt',  'w')
 print("Done!")
 
 print("Init external robot controller...")
-rc = control.robot_controller(); 
+rc = controlMKP.robot_controller(); 
 print("Done!")
 
 
