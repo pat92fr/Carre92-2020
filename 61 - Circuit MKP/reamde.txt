@@ -1,0 +1,11 @@
+https://github.com/Moguri/panda3d-gltf
+
+pip install panda3d-gltf
+
+Command Line
+To convert glTF files to BAM via the command line, use the supplied gltf2bam tool:
+
+gltf2bam source.gltf output.bam
+
+Viewer
+panda3d-gltf ships with gltf-viewer. This is a simple viewer (like pview) to view glTF (or any other file format support by Panda3D) with a simple, PBR renderer.
