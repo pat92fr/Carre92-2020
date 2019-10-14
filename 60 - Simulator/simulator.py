@@ -161,8 +161,8 @@ class MyApp(ShowBase):
 		self.heading = 0.0
 		self.heading_text = OnscreenText(text=str(int(self.heading)) +"deg", pos=(1.7,0.4), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
 
-		self.slider_max_speed = DirectSlider(range=(0,10), value=self.robot_controller.max_speed, pageSize=0.1, command=self.slider_max_speed_change, scale=0.4, pos = (0.0,0.0,0.9))
-		self.text_max_speed = OnscreenText(text="Vmax " + str(self.robot_controller.max_speed)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.9))
+		self.slider_max_speed = DirectSlider(range=(0,10), value=self.robot_controller.max_speed_ms, pageSize=0.1, command=self.slider_max_speed_change, scale=0.4, pos = (0.0,0.0,0.9))
+		self.text_max_speed = OnscreenText(text="Vmax " + str(self.robot_controller.max_speed_ms)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.9))
 		
 		self.slider_ai_direction_kp = DirectSlider(range=(0,3), value=self.robot_controller.pid_line_following.kp, pageSize=0.1, command=self.slider_ai_direction_kp_change, scale=0.4, pos = (0.0,0.0,0.85))
 		self.text_ai_direction_kp = OnscreenText(text="AI Direction Kp " + str(round(self.robot_controller.pid_line_following.kp,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.85))
@@ -171,7 +171,7 @@ class MyApp(ShowBase):
 		self.text_ai_direction_kd = OnscreenText(text="AI Direction Kd " + str(round(self.robot_controller.pid_line_following.kd,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.80))
 
 		self.slider_steering_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.steering_k_speed, pageSize=0.1, command=self.slider_steering_k_speed_change, scale=0.4, pos = (0.0,0.0,0.75))
-		self.text_steering_k_speed = OnscreenText(text="AI Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.75))
+		self.text_steering_k_speed = OnscreenText(text="Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.75))
 
 		self.slider_ai_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.ai_direction_k_speed, pageSize=0.1, command=self.slider_ai_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.70))
 		self.text_ai_direction_k_speed = OnscreenText(text="AI Direction K speed " + str(round(self.robot_controller.ai_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.70))
@@ -185,8 +185,8 @@ class MyApp(ShowBase):
 		self.slider_lidar_direction_kd = DirectSlider(range=(0,30), value=self.robot_controller.pid_wall_following.kd, pageSize=0.1, command=self.slider_lidar_direction_kd_change, scale=0.4, pos = (0.0,0.0,0.55))
 		self.text_lidar_direction_kd = OnscreenText(text="Lidar Direction Kd " + str(round(self.robot_controller.pid_wall_following.kd,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.55))
 
-		self.slider_lidar_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.lidar_direction_k_speed, pageSize=0.1, command=self.slider_lidar_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.45))
-		self.text_lidar_direction_k_speed = OnscreenText(text="Lidar Direction K speed " + str(round(self.robot_controller.lidar_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.45))
+		self.slider_lidar_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.lidar_direction_k_speed, pageSize=0.1, command=self.slider_lidar_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.50))
+		self.text_lidar_direction_k_speed = OnscreenText(text="Lidar Direction K speed " + str(round(self.robot_controller.lidar_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.50))
 
         # application state
 		self.quit = False
@@ -372,8 +372,8 @@ class MyApp(ShowBase):
 
 
 	def slider_max_speed_change(self):
-		self.robot_controller.max_speed = float(self.slider_max_speed['value'])
-		self.text_max_speed.setText("Vmax " + str(round(self.robot_controller.max_speed,1))+"m/s")
+		self.robot_controller.max_speed_ms = float(self.slider_max_speed['value'])
+		self.text_max_speed.setText("Vmax " + str(round(self.robot_controller.max_speed_ms,1))+"m/s")
 
 	def slider_ai_direction_kp_change(self):
 		self.robot_controller.pid_line_following.kp = float(self.slider_ai_direction_kp['value'])
@@ -385,7 +385,7 @@ class MyApp(ShowBase):
 
 	def slider_steering_k_speed_change(self):
 		self.robot_controller.steering_k_speed = float(self.slider_steering_k_speed['value'])
-		self.text_steering_k_speed.setText("AI Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)))
+		self.text_steering_k_speed.setText("Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)))
 
 	def slider_ai_direction_k_speed_change(self):
 		self.robot_controller.ai_direction_k_speed = float(self.slider_ai_direction_k_speed['value'])
@@ -573,7 +573,11 @@ class MyApp(ShowBase):
 			self.steering, self.throttle = self.robot_controller.process(
 				dt,
 				self.actual_speed_ms,
-				self.total_distance )
+				self.total_distance,
+				self.lidar_distance_droit,
+				self.lidar_distance_gauche,
+				self.lidar_distance_haut
+			)
 
 			# simulator steering
 			self.steering *= self.steering_clamp
@@ -834,6 +838,8 @@ class MyApp(ShowBase):
 		self.chassisNP.setPos(0, 10.0, 0.2)
 		self.chassisNP.setHpr(180, 0.0, 0.0)
 		self.lap_counter = 0
+		self.total_distance = 0
+		self.lap_distance = 0
 
 	def get_camera_image(self, requested_format=None):
 		"""
