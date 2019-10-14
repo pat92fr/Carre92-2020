@@ -1,3 +1,12 @@
+Simulator : Toulouse Robot Race with external controller
+	* Control.py s the external controller
+
+SimulatorMKP : Make Faire Paris 2019 with LIDAR and external controller
+	* ControlMKP.py is the externe controller
+
+
+---- Tools 
+
 1) blender to gltf
 https://discourse.panda3d.org/t/yabee-and-blender-2-8/24996/16
 Blender 2.80 glTF exporter. I recommend using the following settings:
