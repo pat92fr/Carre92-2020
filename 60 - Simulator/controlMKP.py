@@ -14,7 +14,7 @@ class robot_controller:
 		self.acceleration = 0.05 # m/s per 1/60eme
 		self.deceleration = 0.2 # m/s per 1/60eme
 
-		self.pid_speed = my_controller.pid(kp=0.2, ki=0.0, kd=0.0, integral_max=1000, output_max=1.0, alpha=0.5) 
+		self.pid_speed = my_controller.pid(kp=0.01, ki=0.0, kd=0.0, integral_max=1000, output_max=1.0, alpha=0.5) 
 		self.pid_speed_kff = 0.0 # feed forward apart from speed PID
 		self.steering_k_speed = 0.0
 

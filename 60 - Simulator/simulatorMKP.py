@@ -725,19 +725,19 @@ while not app.quit:
 	asyncore.loop(timeout=0, count=1)
 	# game tick
 	taskMgr.step()
-	# get picture for CNN
-	frame_orign = app.get_camera_image()
-	# supress alpha channel
-	frame_orign = frame_orign[:, :, 0:3] 
-	#resize to CNN input format
-	frame_orign = cv2.resize(frame_orign, (160, 90),   interpolation = cv2.INTER_AREA)
-	# smotth and gray scale
-	frame = cv2.blur(frame_orign,(3,3))
-	frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-	# reshape for CNN
-	frame = frame.reshape(90,160,1)
-	# use CNN
-	app.robot_controller.frame_update(frame.reshape(1,90,160,1))
+	# # get picture for CNN
+	# frame_orign = app.get_camera_image()
+	# # supress alpha channel
+	# frame_orign = frame_orign[:, :, 0:3] 
+	# #resize to CNN input format
+	# frame_orign = cv2.resize(frame_orign, (160, 90),   interpolation = cv2.INTER_AREA)
+	# # smotth and gray scale
+	# frame = cv2.blur(frame_orign,(3,3))
+	# frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+	# # reshape for CNN
+	# frame = frame.reshape(90,160,1)
+	# # use CNN
+	# app.robot_controller.frame_update(frame.reshape(1,90,160,1))
 	# dataset recording
 	if app.recording and counter != 0: #and not app.autopilot : # first frame buffer is empty, skip it!
 		filename = dataset_dir + '/render_' + str(record_counter) + '.jpg'
