@@ -7,16 +7,16 @@ class robot_controller:
 	def __init__(self):
 
 		# speed controller settings
-		self.min_speed_ms = 1.0 # 0.5 m/s
-		self.cornering_speed = 1.5
-		self.max_speed_ms = 2.0 # 3.5 m/s
+		self.min_speed_ms = 0.1 # 0.5 m/s
+		self.cornering_speed = 0.2
+		self.max_speed_ms = 0.2 # 3.5 m/s
 
 		self.acceleration = 0.05 # m/s per 1/60eme
 		self.deceleration = 0.2 # m/s per 1/60eme
 
 		self.pid_speed = my_controller.pid(kp=0.3, ki=0.001, kd=0.1, integral_max=1000, output_max=1.0, alpha=0.1) 
 		self.pid_speed_kff = 0.05 # feed forward apart from speed PID
-		self.steering_k_speed = 0.1
+		self.steering_k_speed = 0.2
 
 		# speed controller state
 		self.target_speed_ms = 0.0 # m/s (square)
@@ -95,6 +95,62 @@ class robot_controller:
 			sum += lidar_distance[key]
 		weighted_average = weighted / sum
 		#####print(weighted_average)
+
+		# find free sectors
+		threshold = 1.0 #1m
+		sectors = {}
+		for angle in range(-90,+90,5):
+			key ='LidarCN'+str(angle)
+			if lidar_distance[key] > threshold:
+				sectors[key] = 1 # free sector
+			else:
+				sectors[key] = 0
+		print(sectors)
+
+		#find group of free sectors (begin,end) 
+		sectors_begin_end = []
+		begin = -1
+		end = -1
+		in_free_sector = False
+		for angle in range(-90,+90,5):
+			key ='LidarCN'+str(angle)
+			if sectors[key] == 1: # if free sector
+				if not in_free_sector:
+					begin = angle
+					in_free_sector = True
+			else:
+				if in_free_sector:
+					end = angle-5
+					in_free_sector = False
+					sectors_begin_end.append( (begin,end))
+		if in_free_sector:
+			end = 90
+			in_free_sector = False
+			sectors_begin_end.append( (begin,end))			
+		print(sectors_begin_end)
+
+		# find largest group of free sectors
+		size = 0
+		begin = 0
+		end = 0
+		for s in sectors_begin_end:
+			current_size = s[1]-s[0]
+			if current_size>size:
+				size=current_size
+				begin = s[0]
+				end = s[1]
+		print(begin)
+		print(end)
+
+		sum = 0.0
+		weighted = 0.0
+		for angle in range(begin,end,5):
+			key ='LidarCN'+str(angle)
+			weighted += angle*lidar_distance[key]
+			sum += lidar_distance[key]
+		weighted_average = weighted / sum
+		#####print(weighted_average)
+
 		self.actual_lidar_direction_error = weighted_average / 45.0
 		self.pid_wall = self.pid_wall_following.compute(self.actual_lidar_direction_error)
 

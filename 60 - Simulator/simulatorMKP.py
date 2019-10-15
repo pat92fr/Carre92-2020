@@ -285,14 +285,14 @@ class MyApp(ShowBase):
 		# camera
 		self.camLens.setFov(100)
 		self.camLens.setNear(0.01)
-		self.camera.setPos(0.5,-0.7,0.30)
-		self.camera.setHpr(10,-25,0)
+		#self.camera.setPos(0.5,-0.7,0.30)
+		#self.camera.setHpr(10,-25,0)
 		####self.camera.setPos(0.0,-0.15,0.25)
 		###self.camera.setPos(0.0,-2.0,2.0)
 		#self.camera.setPos(0.0,-0.5,0.5)
-		######self.camera.setPos(0.0,-0.5,1.0)
+		self.camera.setPos(0.0,-0.5,1.0)
 		#self.camera.setPos(0.0,0.05,0.22) # REFERENCE
-		#######self.camera.setHpr(0,-45,0)
+		self.camera.setHpr(0,-45,0)
 		self.camera.reparentTo(self.chassisNP)
 
 		# tasks
@@ -605,7 +605,7 @@ class MyApp(ShowBase):
 
         # load obstacle model
 		self.obstacleNodePath = []
-		obstable_position = [ (-3.0, 0.5, -0.2), (8.0, 0.7, -0.2), (-5.0, 0.7, -0.2), (-10.0, 0.7, -0.2), (11.0, 0.8, -0.2) ]
+		obstable_position = [ (-3.0, 0.5, -0.2), (8.0, 0.7, -0.2), (-5.0, 0.7, -0.2), (-10.0, 0.7, -0.2), (10.0, 0.8, -0.2) ]
 		tex = loader.loadTexture('/c/tmp/mediaMKP/pink.png')
 		for op in obstable_position :
 			onp = self.loader.loadModel("box.egg")
