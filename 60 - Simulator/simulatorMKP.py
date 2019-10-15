@@ -220,7 +220,7 @@ class MyApp(ShowBase):
 		self.chassisTS = TransformState.makePos(Point3(0, 0, 0.02)) # bottom of the car is at 0 altitude
 		self.chassisPhysNode = BulletRigidBodyNode('Vehicle')
 		self.chassisPhysNode.addShape(self.chassisPhysShape, self.chassisTS)
-		self.chassisPhysNode.setMass(5.0) #lbs
+		self.chassisPhysNode.setMass(2.0) #lbs
 		self.chassisPhysNode.setDeactivationEnabled(False)
 		self.chassisNP = self.worldNP.attachNewNode(self.chassisPhysNode)
 		self.world.attachRigidBody(self.chassisPhysNode)
@@ -236,19 +236,19 @@ class MyApp(ShowBase):
 
 		FRwheelNP = loader.loadModel('/c/tmp/mediaMKP/wheel.bam')
 		FRwheelNP.reparentTo(self.worldNP)
-		self.addWheel(Point3(0.10, 0.14, 0.40), True, FRwheelNP)
+		self.addWheel(Point3(0.10, 0.14, 0.38), True, FRwheelNP)
 
 		FLwheelNP = loader.loadModel('/c/tmp/mediaMKP/wheel.bam')
 		FLwheelNP.reparentTo(self.worldNP)
-		self.addWheel(Point3(-0.10, 0.14, 0.40), True, FLwheelNP)
+		self.addWheel(Point3(-0.10, 0.14, 0.38), True, FLwheelNP)
 
 		RRwheelNP = loader.loadModel('/c/tmp/mediaMKP/wheel.bam')
 		RRwheelNP.reparentTo(self.worldNP)
-		self.addWheel(Point3(0.10, -0.14, 0.40), False, RRwheelNP)
+		self.addWheel(Point3(0.10, -0.14, 0.38), False, RRwheelNP)
 
 		RLwheelNP = loader.loadModel('/c/tmp/mediaMKP/wheel.bam')
 		RLwheelNP.reparentTo(self.worldNP)
-		self.addWheel(Point3(-0.10, -0.14, 0.40), False, RLwheelNP)
+		self.addWheel(Point3(-0.10, -0.14, 0.38), False, RLwheelNP)
 
 		# Collision solids/nodes for chassis
 		self.chassisCN = CollisionNode('chassisCN')
@@ -285,14 +285,14 @@ class MyApp(ShowBase):
 		# camera
 		self.camLens.setFov(100)
 		self.camLens.setNear(0.01)
-		#self.camera.setPos(0.5,-0.5,0.50)
-		#self.camera.setHpr(35,-35,0)
+		self.camera.setPos(0.5,-0.7,0.30)
+		self.camera.setHpr(10,-25,0)
 		####self.camera.setPos(0.0,-0.15,0.25)
 		###self.camera.setPos(0.0,-2.0,2.0)
 		#self.camera.setPos(0.0,-0.5,0.5)
-		self.camera.setPos(0.0,-0.5,1.0)
+		######self.camera.setPos(0.0,-0.5,1.0)
 		#self.camera.setPos(0.0,0.05,0.22) # REFERENCE
-		self.camera.setHpr(0,-45,0)
+		#######self.camera.setHpr(0,-45,0)
 		self.camera.reparentTo(self.chassisNP)
 
 		# tasks
@@ -358,16 +358,27 @@ class MyApp(ShowBase):
 		wheel.setChassisConnectionPointCs(pos)
 		wheel.setFrontWheel(front)
 
+		# wheel.setWheelDirectionCs(Vec3(0, 0, -1))
+		# wheel.setWheelAxleCs(Vec3(1, 0, 0))
+		# wheel.setWheelRadius(0.03)
+		# wheel.setMaxSuspensionTravelCm(5.0) #cm
+
 		wheel.setWheelDirectionCs(Vec3(0, 0, -1))
 		wheel.setWheelAxleCs(Vec3(1, 0, 0))
 		wheel.setWheelRadius(0.03)
-		wheel.setMaxSuspensionTravelCm(5.0) #cm
+		wheel.setMaxSuspensionTravelCm(3.0) #cm
 
-		wheel.setSuspensionStiffness(90.0)
-		wheel.setWheelsDampingRelaxation(0.3)
-		wheel.setWheelsDampingCompression(0.2) 
-		wheel.setFrictionSlip(0.8);
-		wheel.setRollInfluence(0.7)
+		# wheel.setSuspensionStiffness(90.0)
+		# wheel.setWheelsDampingRelaxation(0.3)
+		# wheel.setWheelsDampingCompression(0.2) 
+		# wheel.setFrictionSlip(0.8);
+		# wheel.setRollInfluence(0.7)
+
+		wheel.setSuspensionStiffness(500.0)
+		wheel.setWheelsDampingRelaxation(3.5)
+		wheel.setWheelsDampingCompression(2.0) 
+		wheel.setFrictionSlip(100.0);
+		wheel.setRollInfluence(0.0)
 
 	def physics_task(self, task):
 
@@ -540,13 +551,14 @@ class MyApp(ShowBase):
 			# simulator steering steering clamp
 			self.steering = constraint(self.steering, -self.steering_clamp, self.steering_clamp)
 
+		print(self.throttle)
 		if self.throttle >= 0.0:
-			self.engineForce = self.throttle*2.0
-			self.engineForce = min(self.engineForce, 2.0)
+			self.engineForce = self.throttle*5.0
+			self.engineForce = min(self.engineForce, 5.0)
 			self.engineForce = max(self.engineForce, 0.0)
 			self.brakeForce = 0.0
 		else:
-			self.brakeForce = -self.throttle*0.1
+			self.brakeForce = -self.throttle*0.2
 			self.brakeForce = min(self.brakeForce, 0.2)
 			self.brakeForce = max(self.brakeForce, 0.0)
 			self.engineForce = 0.0
@@ -556,8 +568,8 @@ class MyApp(ShowBase):
 		self.vehicle.setSteeringValue(self.steering, 1);
 
 		# Apply engine and brake to rear wheels
-		self.vehicle.applyEngineForce(self.engineForce, 0);
-		self.vehicle.applyEngineForce(self.engineForce, 1);
+		#self.vehicle.applyEngineForce(self.engineForce, 0);
+		#self.vehicle.applyEngineForce(self.engineForce, 1);
 		self.vehicle.applyEngineForce(self.engineForce, 2);
 		self.vehicle.applyEngineForce(self.engineForce, 3);
 		self.vehicle.setBrake(self.brakeForce, 0);

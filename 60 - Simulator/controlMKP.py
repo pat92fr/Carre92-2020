@@ -94,7 +94,7 @@ class robot_controller:
 			weighted += angle*lidar_distance[key]
 			sum += lidar_distance[key]
 		weighted_average = weighted / sum
-		print(weighted_average)
+		#####print(weighted_average)
 		self.actual_lidar_direction_error = weighted_average / 45.0
 		self.pid_wall = self.pid_wall_following.compute(self.actual_lidar_direction_error)
 
