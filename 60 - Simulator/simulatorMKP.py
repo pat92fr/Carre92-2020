@@ -266,7 +266,6 @@ class MyApp(ShowBase):
 		self.LidarCN = []
 		self.LidarCNP = []
 		self.lidar_distance = {}
-		lidar_index = 0
 		for angle in range(-135,+135,5):
 			cn = CollisionNode('LidarCN'+str(angle))
 			cs = CollisionSegment((0.0,0.1,0.05),(-self.lidar_maximum_distance*math.sin(math.radians(angle)),self.lidar_maximum_distance*math.cos(math.radians(angle)),0.0)) 
@@ -388,8 +387,9 @@ class MyApp(ShowBase):
 					current = self.chassisNP.getPos()
 					#current = cnp.getPos()
 					distance = (point-current).length()
-					self.lidar_distance[cnp.node().name] = distance
-		print(self.lidar_distance)
+					if self.lidar_distance[cnp.node().name] > distance:
+						self.lidar_distance[cnp.node().name] = distance
+		#print(self.lidar_distance)
 # TODO : construire un vecteur avec par défaut la distance max et si collision, la distance mesurée
 
 
@@ -527,9 +527,7 @@ class MyApp(ShowBase):
 				dt,
 				self.actual_speed_ms,
 				self.total_distance,
-				self.lidar_distance_droit,
-				self.lidar_distance_gauche,
-				self.lidar_distance_haut
+				self.lidar_distance
 			)
 
 			# simulator steering
@@ -543,13 +541,13 @@ class MyApp(ShowBase):
 			self.steering = constraint(self.steering, -self.steering_clamp, self.steering_clamp)
 
 		if self.throttle >= 0.0:
-			self.engineForce = self.throttle*1.0
-			self.engineForce = min(self.engineForce, 5.0)
+			self.engineForce = self.throttle*2.0
+			self.engineForce = min(self.engineForce, 2.0)
 			self.engineForce = max(self.engineForce, 0.0)
 			self.brakeForce = 0.0
 		else:
-			self.brakeForce = -self.throttle*1.0
-			self.brakeForce = min(self.brakeForce, 5.0)
+			self.brakeForce = -self.throttle*0.1
+			self.brakeForce = min(self.brakeForce, 0.2)
 			self.brakeForce = max(self.brakeForce, 0.0)
 			self.engineForce = 0.0
 
@@ -585,11 +583,28 @@ class MyApp(ShowBase):
 		self.bordersNodePath = self.loader.loadModel("/c/tmp/mediaMKP/borders.bam")
 		self.bordersNodePath.setCollideMask(BitMask32.bit(2))
 		self.bordertopNodePath = self.loader.loadModel("/c/tmp/mediaMKP/bordertop.bam")
+
         #
 		self.circuitNodePath = NodePath('circuit')
 		self.groundNodePath.reparentTo(self.circuitNodePath)
 		self.bordersNodePath.reparentTo(self.circuitNodePath)
 		self.bordertopNodePath.reparentTo(self.circuitNodePath)
+		
+
+        # load obstacle model
+		self.obstacleNodePath = []
+		obstable_position = [ (-3.0, 0.5, -0.2), (8.0, 0.7, -0.2), (-5.0, 0.7, -0.2), (-10.0, 0.7, -0.2), (11.0, 0.8, -0.2) ]
+		tex = loader.loadTexture('/c/tmp/mediaMKP/pink.png')
+		for op in obstable_position :
+			onp = self.loader.loadModel("box.egg")
+			onp.setTexture(tex, 1)
+			onp.setCollideMask(BitMask32.bit(2))
+			onp.setScale(0.02, 0.3, 0.5)
+			onp.setPos(op)
+			onp.reparentTo(self.circuitNodePath)
+			self.obstacleNodePath.append(onp)
+
+
 
 		self.circuitNodePath.reparentTo(self.render)
 		self.circuitNodePath.setScale(1.0, 1.0, 1.0)
@@ -717,25 +732,17 @@ while not app.quit:
 	#if counter % 2 == 0:
 		msg = str(int(counter/2)) + ';'
 
-		msg += str( float(app.robot_controller.actual_lidar_direction_error) ) + ';'
-		msg += str( float(app.robot_controller.pid_wall) ) + ';'
-
-		msg += str( float(app.robot_controller.target_speed_ms) ) + ';'
+		#msg += str( float(app.robot_controller.target_speed_ms) ) + ';'
 		msg += str( float(app.robot_controller.current_speed_ms) ) + ';'
 		msg += str( float(app.robot_controller.actual_speed_ms) ) + ';' 
 		msg += str( float(app.robot_controller.actual_speed_error_ms) ) + ';'
 		msg += str( float(app.throttle) ) + ';' 
 
-		msg += str( float(app.robot_controller.line_pos) ) + ';'
-		msg += str( float(app.robot_controller.pid_line) ) + ';' 
-
+		msg += str( float(app.robot_controller.actual_lidar_direction_error) ) + ';'
+		msg += str( float(app.robot_controller.pid_wall) ) + ';'
 		msg += str( float(app.robot_controller.ratio_ai*10) ) + ';' 
-
-
-		msg += str( float(app.steering) ) + ';' 
+		msg += str( float(app.steering) ) 
 		
-		msg += str( float(app.heading) )
-
 		msg_length = str(len(msg)).ljust(4)
 		tserver.sendTelemetry(msg_length)
 		tserver.sendTelemetry(msg)

@@ -7,16 +7,16 @@ class robot_controller:
 	def __init__(self):
 
 		# speed controller settings
-		self.min_speed_ms = 2.5 # 0.5 m/s
-		self.cornering_speed = 3.0
-		self.max_speed_ms = 5.0 # 3.5 m/s
+		self.min_speed_ms = 1.0 # 0.5 m/s
+		self.cornering_speed = 1.5
+		self.max_speed_ms = 2.0 # 3.5 m/s
 
 		self.acceleration = 0.05 # m/s per 1/60eme
 		self.deceleration = 0.2 # m/s per 1/60eme
 
-		self.pid_speed = my_controller.pid(kp=0.01, ki=0.0, kd=0.0, integral_max=1000, output_max=1.0, alpha=0.5) 
-		self.pid_speed_kff = 0.0 # feed forward apart from speed PID
-		self.steering_k_speed = 0.0
+		self.pid_speed = my_controller.pid(kp=0.5, ki=0.0, kd=1.0, integral_max=1000, output_max=1.0, alpha=0.1) 
+		self.pid_speed_kff = 0.05 # feed forward apart from speed PID
+		self.steering_k_speed = 0.1
 
 		# speed controller state
 		self.target_speed_ms = 0.0 # m/s (square)
@@ -26,7 +26,7 @@ class robot_controller:
 		self.actual_speed_error_ms = 0.0 # m/s
 
 		# lidar steering controller settings
-		self.pid_wall_following = my_controller.pid(kp=1.0, ki=0.0, kd=0.0, integral_max=1000, output_max=1.0, alpha=0.2) 
+		self.pid_wall_following = my_controller.pid(kp=1.0, ki=0.0, kd=10.0, integral_max=1000, output_max=1.0, alpha=0.2) 
 		self.lidar_direction_k_speed = 0.0
 		self.lidar_maximum_distance = 2.0
 
@@ -46,24 +46,25 @@ class robot_controller:
 		self.ratio_ai = 1.0
 
 		# steering settings
-		self.ration_ai_x1 = 0.3 #
-		self.ration_ai_x2 = 0.5 #
+		self.ration_ai_x1 = 0.0 #
+		self.ration_ai_x2 = 0.1 #
 
 		# AI input
 		self.frame = np.zeros((1,90,160,1))
 
 	# speed strategy
 	def max_speed_from_distance(self, distance):
-		if distance > 0.0 and distance < 4.0:
-			return self.max_speed_ms
-		elif distance > 15.0 and distance < 25.0:
-			return self.max_speed_ms
-		elif distance > 45.0 and distance < 55.0:
-			return self.max_speed_ms
-		elif distance > 65.0 and distance < 120.0:
-			return self.max_speed_ms
-		else:
-			return self.cornering_speed
+		# if distance > 0.0 and distance < 4.0:
+		# 	return self.max_speed_ms
+		# elif distance > 15.0 and distance < 25.0:
+		# 	return self.max_speed_ms
+		# elif distance > 45.0 and distance < 55.0:
+		# 	return self.max_speed_ms
+		# elif distance > 65.0 and distance < 120.0:
+		# 	return self.max_speed_ms
+		# else:
+		# 	return self.cornering_speed
+		return self.max_speed_ms
 
 	def frame_update(self,frame):
 		self.frame = frame
@@ -73,11 +74,8 @@ class robot_controller:
 		dt,
 		actual_speed_ms,
 		total_distance,
-		lidar_distance_droit,
-		lidar_distance_gauche,
-		lidar_distance_haut
+		lidar_distance
 		 ):
-
 
 		# controlled state
 		steering = 0.0
@@ -85,11 +83,19 @@ class robot_controller:
 
 		# speed controller (stage 1)
 		self.target_speed_ms = self.max_speed_from_distance(total_distance)
+		self.actual_speed_ms = 0.8*self.actual_speed_ms + 0.24*actual_speed_ms
 
 		# wall following PID controller
-		lidar_distance_droit = constraint(lidar_distance_droit,0, self.lidar_maximum_distance)
-		lidar_distance_gauche = constraint(lidar_distance_gauche,0, self.lidar_maximum_distance)
-		self.actual_lidar_direction_error = -constraint(lidar_distance_droit - lidar_distance_gauche, -self.lidar_maximum_distance, self.lidar_maximum_distance)/self.lidar_maximum_distance
+		self.actual_lidar_direction_error = 0
+		sum = 0.0
+		weighted = 0.0
+		for angle in range(-135,+135,5):
+			key ='LidarCN'+str(angle)
+			weighted += angle*lidar_distance[key]
+			sum += lidar_distance[key]
+		weighted_average = weighted / sum
+		print(weighted_average)
+		self.actual_lidar_direction_error = weighted_average / 45.0
 		self.pid_wall = self.pid_wall_following.compute(self.actual_lidar_direction_error)
 
 		# use CNN
