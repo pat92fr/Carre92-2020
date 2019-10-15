@@ -236,19 +236,19 @@ class MyApp(ShowBase):
 
 		FRwheelNP = loader.loadModel('/c/tmp/mediaMKP/wheel.bam')
 		FRwheelNP.reparentTo(self.worldNP)
-		self.addWheel(Point3(0.10, 0.14, 0.38), True, FRwheelNP)
+		self.addWheel(Point3(0.11, 0.14, 0.38), True, FRwheelNP)
 
 		FLwheelNP = loader.loadModel('/c/tmp/mediaMKP/wheel.bam')
 		FLwheelNP.reparentTo(self.worldNP)
-		self.addWheel(Point3(-0.10, 0.14, 0.38), True, FLwheelNP)
+		self.addWheel(Point3(-0.11, 0.14, 0.38), True, FLwheelNP)
 
 		RRwheelNP = loader.loadModel('/c/tmp/mediaMKP/wheel.bam')
 		RRwheelNP.reparentTo(self.worldNP)
-		self.addWheel(Point3(0.10, -0.14, 0.38), False, RRwheelNP)
+		self.addWheel(Point3(0.11, -0.14, 0.38), False, RRwheelNP)
 
 		RLwheelNP = loader.loadModel('/c/tmp/mediaMKP/wheel.bam')
 		RLwheelNP.reparentTo(self.worldNP)
-		self.addWheel(Point3(-0.10, -0.14, 0.38), False, RLwheelNP)
+		self.addWheel(Point3(-0.11, -0.14, 0.38), False, RLwheelNP)
 
 		# Collision solids/nodes for chassis
 		self.chassisCN = CollisionNode('chassisCN')
@@ -365,7 +365,7 @@ class MyApp(ShowBase):
 
 		wheel.setWheelDirectionCs(Vec3(0, 0, -1))
 		wheel.setWheelAxleCs(Vec3(1, 0, 0))
-		wheel.setWheelRadius(0.03)
+		wheel.setWheelRadius(0.04)
 		wheel.setMaxSuspensionTravelCm(3.0) #cm
 
 		# wheel.setSuspensionStiffness(90.0)
@@ -374,10 +374,10 @@ class MyApp(ShowBase):
 		# wheel.setFrictionSlip(0.8);
 		# wheel.setRollInfluence(0.7)
 
-		wheel.setSuspensionStiffness(500.0)
+		wheel.setSuspensionStiffness(110.0)
 		wheel.setWheelsDampingRelaxation(3.5)
-		wheel.setWheelsDampingCompression(2.0) 
-		wheel.setFrictionSlip(100.0);
+		wheel.setWheelsDampingCompression(3.0) 
+		wheel.setFrictionSlip(50.0);
 		wheel.setRollInfluence(0.0)
 
 	def physics_task(self, task):
@@ -480,7 +480,7 @@ class MyApp(ShowBase):
 		if  dt != 0:
 			self.actual_speed_ms = self.actual_speed_ms * 0.8 + 0.2 * (self.delta_distance/dt)
 		self.last_position = self.current_position
-		self.actual_speed_kmh = 0.9 * self.actual_speed_kmh + 0.1 * self.actual_speed_ms*60*60/1000
+		self.actual_speed_kmh = self.actual_speed_ms*60*60/1000
 		self.speed_o_meter.setText(str(int(self.actual_speed_kmh))+ "km/h")
 		self.lap_distance_text.setText(str(int(self.lap_distance))+ "m")
 
@@ -568,12 +568,12 @@ class MyApp(ShowBase):
 		self.vehicle.setSteeringValue(self.steering, 1);
 
 		# Apply engine and brake to rear wheels
-		#self.vehicle.applyEngineForce(self.engineForce, 0);
-		#self.vehicle.applyEngineForce(self.engineForce, 1);
-		self.vehicle.applyEngineForce(self.engineForce, 2);
-		self.vehicle.applyEngineForce(self.engineForce, 3);
-		self.vehicle.setBrake(self.brakeForce, 0);
-		self.vehicle.setBrake(self.brakeForce, 1);
+		self.vehicle.applyEngineForce(self.engineForce, 0);
+		self.vehicle.applyEngineForce(self.engineForce, 1);
+		#self.vehicle.applyEngineForce(self.engineForce, 2);
+		#self.vehicle.applyEngineForce(self.engineForce, 3);
+		#self.vehicle.setBrake(self.brakeForce, 0);
+		#self.vehicle.setBrake(self.brakeForce, 1);
 		self.vehicle.setBrake(self.brakeForce, 2);
 		self.vehicle.setBrake(self.brakeForce, 3);
 
