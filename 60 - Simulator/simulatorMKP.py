@@ -551,7 +551,7 @@ class MyApp(ShowBase):
 			# simulator steering steering clamp
 			self.steering = constraint(self.steering, -self.steering_clamp, self.steering_clamp)
 
-		print(self.throttle)
+		#print(self.throttle)
 		if self.throttle >= 0.0:
 			self.engineForce = self.throttle*5.0
 			self.engineForce = min(self.engineForce, 5.0)

@@ -1,6 +1,7 @@
 import my_controller
 from my_math import *
 import numpy as np
+import math
 
 class robot_controller:
 
@@ -87,71 +88,86 @@ class robot_controller:
 
 		# wall following PID controller
 		self.actual_lidar_direction_error = 0
-		sum = 0.0
-		weighted = 0.0
+		# sum = 0.0
+		# weighted = 0.0
+		# for angle in range(-135,+135,5):
+		# 	key ='LidarCN'+str(angle)
+		# 	weighted += angle*lidar_distance[key]
+		# 	sum += lidar_distance[key]
+		# weighted_average = weighted / sum
+		# #####print(weighted_average)
+
+		# # find free sectors
+		# threshold = 1.0 #1m
+		# sectors = {}
+		# for angle in range(-90,+90,5):
+		# 	key ='LidarCN'+str(angle)
+		# 	if lidar_distance[key] > threshold:
+		# 		sectors[key] = 1 # free sector
+		# 	else:
+		# 		sectors[key] = 0
+		# print(sectors)
+
+		# #find group of free sectors (begin,end) 
+		# sectors_begin_end = []
+		# begin = -1
+		# end = -1
+		# in_free_sector = False
+		# for angle in range(-90,+90,5):
+		# 	key ='LidarCN'+str(angle)
+		# 	if sectors[key] == 1: # if free sector
+		# 		if not in_free_sector:
+		# 			begin = angle
+		# 			in_free_sector = True
+		# 	else:
+		# 		if in_free_sector:
+		# 			end = angle-5
+		# 			in_free_sector = False
+		# 			sectors_begin_end.append( (begin,end))
+		# if in_free_sector:
+		# 	end = 90
+		# 	in_free_sector = False
+		# 	sectors_begin_end.append( (begin,end))			
+		# print(sectors_begin_end)
+
+		# # find largest group of free sectors
+		# size = 0
+		# begin = 0
+		# end = 0
+		# for s in sectors_begin_end:
+		# 	current_size = s[1]-s[0]
+		# 	if current_size>size:
+		# 		size=current_size
+		# 		begin = s[0]
+		# 		end = s[1]
+		# print(begin)
+		# print(end)
+
+		# sum = 0.0
+		# weighted = 0.0
+		# for angle in range(begin,end,5):
+		# 	key ='LidarCN'+str(angle)
+		# 	weighted += angle*lidar_distance[key]
+		# 	sum += lidar_distance[key]
+		# weighted_average = weighted / sum
+		# #####print(weighted_average)
+
+		# self.actual_lidar_direction_error = weighted_average / 45.0
+
+		# for each measure, compute force (x,y)
+		F = 2.0
+		fx = 0.0
+		fy = 0.0
 		for angle in range(-135,+135,5):
 			key ='LidarCN'+str(angle)
-			weighted += angle*lidar_distance[key]
-			sum += lidar_distance[key]
-		weighted_average = weighted / sum
-		#####print(weighted_average)
+			fx += F / (lidar_distance[key]*lidar_distance[key]) * math.cos(math.radians(angle + 180.0))
+			fy += F / (lidar_distance[key]*lidar_distance[key]) * math.sin(math.radians(angle + 180.0))
+		fx /= 270.0/5.0
+		fy /= 270.0/5.0
+		angle_av = math.atan(fy/fx)
+		print(str(fy) + ' ' + str(fx))
 
-		# find free sectors
-		threshold = 1.0 #1m
-		sectors = {}
-		for angle in range(-90,+90,5):
-			key ='LidarCN'+str(angle)
-			if lidar_distance[key] > threshold:
-				sectors[key] = 1 # free sector
-			else:
-				sectors[key] = 0
-		print(sectors)
-
-		#find group of free sectors (begin,end) 
-		sectors_begin_end = []
-		begin = -1
-		end = -1
-		in_free_sector = False
-		for angle in range(-90,+90,5):
-			key ='LidarCN'+str(angle)
-			if sectors[key] == 1: # if free sector
-				if not in_free_sector:
-					begin = angle
-					in_free_sector = True
-			else:
-				if in_free_sector:
-					end = angle-5
-					in_free_sector = False
-					sectors_begin_end.append( (begin,end))
-		if in_free_sector:
-			end = 90
-			in_free_sector = False
-			sectors_begin_end.append( (begin,end))			
-		print(sectors_begin_end)
-
-		# find largest group of free sectors
-		size = 0
-		begin = 0
-		end = 0
-		for s in sectors_begin_end:
-			current_size = s[1]-s[0]
-			if current_size>size:
-				size=current_size
-				begin = s[0]
-				end = s[1]
-		print(begin)
-		print(end)
-
-		sum = 0.0
-		weighted = 0.0
-		for angle in range(begin,end,5):
-			key ='LidarCN'+str(angle)
-			weighted += angle*lidar_distance[key]
-			sum += lidar_distance[key]
-		weighted_average = weighted / sum
-		#####print(weighted_average)
-
-		self.actual_lidar_direction_error = weighted_average / 45.0
+		self.actual_lidar_direction_error = fy
 		self.pid_wall = self.pid_wall_following.compute(self.actual_lidar_direction_error)
 
 		# use CNN
