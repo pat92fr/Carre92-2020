@@ -270,7 +270,7 @@ class MyApp(ShowBase):
 		self.LidarCN = []
 		self.LidarCNP = []
 		self.lidar_distance = {}
-		for angle in range(-135,+135,5):
+		for angle in range(-135,+135,1):
 			cn = CollisionNode('LidarCN'+str(angle))
 			cs = CollisionSegment((0.0,0.1,0.05),(-self.lidar_maximum_distance*math.sin(math.radians(angle)),self.lidar_maximum_distance*math.cos(math.radians(angle)),0.0)) 
 			cn.addSolid(cs)
@@ -280,7 +280,7 @@ class MyApp(ShowBase):
 			#cnp.show()
 			self.LidarCN.append(cn)
 			self.LidarCNP.append(cnp)
-			print(cnp.node().name)
+			#print(cnp.node().name)
 			self.lidar_distance[cnp.node().name] = 0.0
 
 		self.chassisNP.setPos(0.0, -0.75, 0.4)
@@ -296,9 +296,9 @@ class MyApp(ShowBase):
 		####self.camera.setPos(0.0,-0.15,0.25)
 		###self.camera.setPos(0.0,-2.0,2.0)
 		#self.camera.setPos(0.0,-0.5,0.5)
-		self.camera.setPos(0.0,-0.5,0.7)
+		self.camera.setPos(0.0,-2.0,2.0)
 		#self.camera.setPos(0.0,0.05,0.22) # REFERENCE
-		self.camera.setHpr(0,-35,0)
+		self.camera.setHpr(0,-30,0)
 		self.camera.reparentTo(self.chassisNP)
 
 		# tasks
@@ -364,7 +364,7 @@ class MyApp(ShowBase):
 		wheel.setSuspensionStiffness(80.0)
 		wheel.setWheelsDampingRelaxation(0.8)
 		wheel.setWheelsDampingCompression(0.6) 
-		wheel.setFrictionSlip(0.8);
+		wheel.setFrictionSlip(10.0);
 		wheel.setRollInfluence(0.1)
 
 	def slider_max_speed_change(self):
@@ -518,17 +518,17 @@ class MyApp(ShowBase):
 			
 			# keys to steering
 			if self.left_button and not self.right_button:
-				self.steering += dt*self.steering_increment*0.3
+				self.steering += dt*self.steering_increment*0.2
 				self.steering = min(self.steering, self.steering_clamp)
 			if not self.left_button and self.right_button:
-				self.steering -= dt*self.steering_increment*0.3
+				self.steering -= dt*self.steering_increment*0.2
 				self.steering = max(self.steering, -self.steering_clamp)
 			if not self.left_button and not self.right_button:
 				if self.steering < 0:
-					self.steering += dt*self.steering_increment*0.20
+					self.steering += dt*self.steering_increment*0.10
 					self.steering = min(self.steering, 0)
 				if self.steering > 0:
-					self.steering -= dt*self.steering_increment*0.20
+					self.steering -= dt*self.steering_increment*0.10
 					self.steering = max(self.steering, 0)
 
 
@@ -562,7 +562,7 @@ class MyApp(ShowBase):
 
 		#print(self.throttle)
 		max_engine_force = 30.0
-		max_brake_force = 5.0
+		max_brake_force = 10.0
 		if self.throttle >= 0.0:
 			self.engineForce = self.throttle*max_engine_force
 			self.engineForce = min(self.engineForce, max_engine_force)
@@ -598,7 +598,7 @@ class MyApp(ShowBase):
         # load the environment model.
 		self.scene = self.loader.loadModel("/c/tmp/mediaPR/env")
 		self.scene.reparentTo(self.render)
-		self.scene.setScale(20, 20, 20)
+		self.scene.setScale(50, 50, 50)
 		self.scene.setPos(0.0, 0.0, -0.001)
 
         # load circuit model
@@ -615,17 +615,27 @@ class MyApp(ShowBase):
 		
 
         # load obstacle model
-		# self.obstacleNodePath = []
-		# obstable_position = [ (-3.0, 0.5, -0.2), (8.0, 0.7, -0.2), (-5.0, 0.7, -0.2), (-10.0, 0.7, -0.2), (10.0, 0.8, -0.2) ]
+		self.obstacleNodePath = []
+		obstable_position = [ 
+			(0.0, 0.0, 0.0),	(0.0, -2.0, 0.0), 
+			(10.0, 10.0, 0.0),	(12.0, 12.0, 0.0), 
+			(-10.0 ,10, 0.0),	(-12.0, 12.0, 0.0),  
+			(0.0 ,10, 0.0),		(0.0, 12.0, 0.0),   
+			(-10.0 ,0, 0.0),	(-12.0, -2.0, 0.0),   
+			(10.0 ,0, 0.0),		(12.0, -2.0, 0.0),   
+			(10.0 ,5, 0.0),		(12.0, 5.0, 0.0),   
+			(-10.0 ,5, 0.0),	(-12.0, 5.0, 0.0)  
+			 ]
 		# tex = loader.loadTexture('/c/tmp/mediaMKP/pink.png')
-		# for op in obstable_position :
-		# 	onp = self.loader.loadModel("box.egg")
-		# 	onp.setTexture(tex, 1)
-		# 	onp.setCollideMask(BitMask32.bit(2))
-		# 	onp.setScale(0.02, 0.3, 0.5)
-		# 	onp.setPos(op)
-		# 	onp.reparentTo(self.circuitNodePath)
-		# 	self.obstacleNodePath.append(onp)
+		for op in obstable_position :
+			onp = self.loader.loadModel("/c/tmp/mediaPR/plot.bam")
+			#onp.setTexture(tex, 1)
+			###onp.setCollideMask(BitMask32.bit(2))
+			onp.setScale(2.0, 2.0, 2.0)
+			onp.setHpr(0.0, 180.0, 0.0)
+			onp.setPos(op)
+			onp.reparentTo(self.render)
+			self.obstacleNodePath.append(onp)
 
 
 
