@@ -172,11 +172,11 @@ class Simulator(ShowBase):
 		self.slider_steering_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.steering_k_speed, pageSize=0.1, command=self.slider_steering_k_speed_change, scale=0.4, pos = (0.0,0.0,0.85))
 		self.text_steering_k_speed = OnscreenText(text="Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.85))
 
-		self.slider_lidar_direction_kp = DirectSlider(range=(0,3), value=self.robot_controller.pid_wall_following.kp, pageSize=0.1, command=self.slider_lidar_direction_kp_change, scale=0.4, pos = (0.0,0.0,0.80))
-		self.text_lidar_direction_kp = OnscreenText(text="Lidar Direction Kp " + str(round(self.robot_controller.pid_wall_following.kp,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.80))
+		self.slider_lidar_direction_kp = DirectSlider(range=(0.0,0.2), value=self.robot_controller.pid_wall_following.kp, pageSize=0.01, command=self.slider_lidar_direction_kp_change, scale=0.4, pos = (0.0,0.0,0.80))
+		self.text_lidar_direction_kp = OnscreenText(text="Lidar Direction Kp " + str(round(self.robot_controller.pid_wall_following.kp,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.80))
 
-		self.slider_lidar_direction_kd = DirectSlider(range=(0,30), value=self.robot_controller.pid_wall_following.kd, pageSize=0.1, command=self.slider_lidar_direction_kd_change, scale=0.4, pos = (0.0,0.0,0.75))
-		self.text_lidar_direction_kd = OnscreenText(text="Lidar Direction Kd " + str(round(self.robot_controller.pid_wall_following.kd,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.75))
+		self.slider_lidar_direction_kd = DirectSlider(range=(0.0,1.0), value=self.robot_controller.pid_wall_following.kd, pageSize=0.01, command=self.slider_lidar_direction_kd_change, scale=0.4, pos = (0.0,0.0,0.75))
+		self.text_lidar_direction_kd = OnscreenText(text="Lidar Direction Kd " + str(round(self.robot_controller.pid_wall_following.kd,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.75))
 
 		self.slider_lidar_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.lidar_direction_k_speed, pageSize=0.1, command=self.slider_lidar_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.70))
 		self.text_lidar_direction_k_speed = OnscreenText(text="Lidar Direction K speed " + str(round(self.robot_controller.lidar_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.70))
@@ -366,11 +366,11 @@ class Simulator(ShowBase):
 
 	def slider_lidar_direction_kp_change(self):
 		self.robot_controller.pid_wall_following.kp = float(self.slider_lidar_direction_kp['value'])
-		self.text_lidar_direction_kp.setText("LIDAR Direction Kp " + str(round(self.robot_controller.pid_wall_following.kp,1)))
+		self.text_lidar_direction_kp.setText("LIDAR Direction Kp " + str(round(self.robot_controller.pid_wall_following.kp,2)))
 
 	def slider_lidar_direction_kd_change(self):
 		self.robot_controller.pid_wall_following.kd = float(self.slider_lidar_direction_kd['value'])
-		self.text_lidar_direction_kd.setText("LIDAR Direction Kd " + str(round(self.robot_controller.pid_wall_following.kd,1)))
+		self.text_lidar_direction_kd.setText("LIDAR Direction Kd " + str(round(self.robot_controller.pid_wall_following.kd,2)))
 
 	def slider_lidar_direction_k_speed_change(self):
 		self.robot_controller.lidar_direction_k_speed = float(self.slider_lidar_direction_k_speed['value'])
@@ -462,7 +462,7 @@ class Simulator(ShowBase):
 		self.lap_distance_text.setText(str(int(self.lap_distance))+ "m")
 
 		# heading
-		self.heading = self.chassisNP.getH()
+		self.heading = self.chassisNP.getH()+90.0
 		self.heading_text.setText('(' + str(round(self.current_position.getX(),1)) +',' + str(round(self.current_position.getY(),1)) +')   ' + str(int(self.heading))+ "deg")
 
 		# reset control state
@@ -519,7 +519,10 @@ class Simulator(ShowBase):
 				dt,
 				self.actual_speed_ms,
 				self.total_distance,
-				self.lidar_distance
+				self.lidar_distance,
+				self.current_position.getX(),
+				self.current_position.getY(),
+				self.heading
 			)
 
 			# simulator steering
@@ -572,16 +575,16 @@ class Simulator(ShowBase):
 
 
 
-		# test
-		for op in wp_position :
-			waypoint_x = op[0]
-			waypoint_y = op[1]
-			x = self.current_position.getX()
-			y = self.current_position.getY()
-			distance = 1.0
-			if controlPR.is_near_waypoint(x,y,waypoint_x,waypoint_y,distance):
-				print(str(op))
-		print('-')
+		# # test
+		# for op in wp_position :
+		# 	waypoint_x = op[0]
+		# 	waypoint_y = op[1]
+		# 	x = self.current_position.getX()
+		# 	y = self.current_position.getY()
+		# 	distance = 1.0
+		# 	if controlPR.is_near_waypoint(x,y,waypoint_x,waypoint_y,distance):
+		# 		print(str(op))
+		# print('-')
 
 
 

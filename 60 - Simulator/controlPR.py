@@ -17,7 +17,7 @@ class robot_controller:
 		# speed controller settings
 		self.min_speed_ms = 0.1 # 0.5 m/s
 		self.cornering_speed = 0.2
-		self.max_speed_ms = 0.2 # 3.5 m/s
+		self.max_speed_ms = 3.0 # 3.5 m/s
 
 		self.acceleration = 0.05 # m/s per 1/60eme
 		self.deceleration = 0.2 # m/s per 1/60eme
@@ -34,7 +34,7 @@ class robot_controller:
 		self.actual_speed_error_ms = 0.0 # m/s
 
 		# lidar steering controller settings
-		self.pid_wall_following = my_controller.pid(kp=1.0, ki=0.0, kd=10.0, integral_max=1000, output_max=1.0, alpha=0.2) 
+		self.pid_wall_following = my_controller.pid(kp=0.05, ki=0.0, kd=0.1, integral_max=1000, output_max=1.0, alpha=0.2) 
 		self.lidar_direction_k_speed = 0.0
 		self.lidar_maximum_distance = 2.0
 
@@ -60,6 +60,14 @@ class robot_controller:
 		# AI input
 		self.frame = np.zeros((1,90,160,1))
 
+
+
+
+		# PR
+		self.current_waypoint_index = 0
+
+
+
 	# speed strategy
 	def max_speed_from_distance(self, distance):
 		# if distance > 0.0 and distance < 4.0:
@@ -82,7 +90,10 @@ class robot_controller:
 		dt,
 		actual_speed_ms,
 		total_distance,
-		lidar_distance
+		lidar_distance,
+		position_x,
+		position_y,
+		heading
 		 ):
 
 		# controlled state
@@ -162,39 +173,82 @@ class robot_controller:
 		# self.actual_lidar_direction_error = weighted_average / 45.0
 
 		# for each measure, compute force (x,y)
-		F = 2.0
-		fx = 0.0
-		fy = 0.0
-		for angle in range(-135,+135,5):
-			key ='LidarCN'+str(angle)
-			fx += F / (lidar_distance[key]*lidar_distance[key]) * math.cos(math.radians(angle + 180.0))
-			fy += F / (lidar_distance[key]*lidar_distance[key]) * math.sin(math.radians(angle + 180.0))
-		fx /= 270.0/5.0
-		fy /= 270.0/5.0
-		angle_av = math.atan(fy/fx)
-		print(str(fy) + ' ' + str(fx))
+		# F = 2.0
+		# fx = 0.0
+		# fy = 0.0
+		# for angle in range(-135,+135,5):
+		# 	key ='LidarCN'+str(angle)
+		# 	fx += F / (lidar_distance[key]*lidar_distance[key]) * math.cos(math.radians(angle + 180.0))
+		# 	fy += F / (lidar_distance[key]*lidar_distance[key]) * math.sin(math.radians(angle + 180.0))
+		# fx /= 270.0/5.0
+		# fy /= 270.0/5.0
+		# angle_av = math.atan(fy/fx)
+		# print(str(fy) + ' ' + str(fx))
 
-		self.actual_lidar_direction_error = fy
-		self.pid_wall = self.pid_wall_following.compute(self.actual_lidar_direction_error)
+		# self.actual_lidar_direction_error = fy
+		# self.pid_wall = self.pid_wall_following.compute(self.actual_lidar_direction_error)
 
 		# use CNN
-		self.line_pos_unfiltered = 0.0
+		# self.line_pos_unfiltered = 0.0
 
 		# line following PID controller
-		self.line_pos = self.line_pos * (1.0-self.ai_direction_alpha) + self.ai_direction_alpha * self.line_pos_unfiltered
-		self.pid_line = self.pid_line_following.compute(self.line_pos)
+		# self.line_pos = self.line_pos * (1.0-self.ai_direction_alpha) + self.ai_direction_alpha * self.line_pos_unfiltered
+		# self.pid_line = self.pid_line_following.compute(self.line_pos)
 
-		# blending PID
-		self.ratio_ai = 0.0
-		if abs(self.actual_lidar_direction_error) < self.ration_ai_x1:
-			self.ratio_ai = 0.0
-		elif abs(self.actual_lidar_direction_error) > self.ration_ai_x2:
-			self.ratio_ai = 1.0
-		else:
-			self.ratio_ai = ( abs(self.actual_lidar_direction_error) - self.ration_ai_x1 ) / (self.ration_ai_x2-self.ration_ai_x1)
-		steering = self.ratio_ai * self.pid_wall + (1.0-self.ratio_ai) * self.pid_line
-		print('+'  * int(self.ratio_ai*10.0))
-		steering = constraint(steering, -1.0, 1.0)
+		# # blending PID
+		# self.ratio_ai = 0.0
+		# if abs(self.actual_lidar_direction_error) < self.ration_ai_x1:
+		# 	self.ratio_ai = 0.0
+		# elif abs(self.actual_lidar_direction_error) > self.ration_ai_x2:
+		# 	self.ratio_ai = 1.0
+		# else:
+		# 	self.ratio_ai = ( abs(self.actual_lidar_direction_error) - self.ration_ai_x1 ) / (self.ration_ai_x2-self.ration_ai_x1)
+		# steering = self.ratio_ai * self.pid_wall + (1.0-self.ratio_ai) * self.pid_line
+		# print('+'  * int(self.ratio_ai*10.0))
+		# steering = constraint(steering, -1.0, 1.0)
+
+
+		if heading>180:
+			heading -=360 
+		if heading<-180:
+			heading +=360 
+
+
+		target_waypoint_pose = wp_position[self.current_waypoint_index]
+		waypoint_x = target_waypoint_pose[0]
+		waypoint_y = target_waypoint_pose[1]
+		target_heading = math.degrees(math.atan2( waypoint_y-position_y, waypoint_x-position_x ))
+		
+		delta_angle = target_heading-heading
+		if delta_angle > 180:
+			delta_angle -=360
+		if delta_angle < -180:
+			delta_angle +=360
+
+		#steering = (delta_angle)*0.1
+
+		self.pid_wall = self.pid_wall_following.compute(delta_angle)
+
+		steering = constraint(self.pid_wall, -1.0, 1.0)
+		print("target_heading:" + str(round(target_heading,1)) + "  current_heading:" + str(round(heading,1)) + "  steering:" + str(round((target_heading-heading),1)) )
+
+
+		distance = 1.0
+		if is_near_waypoint(position_x,position_y,waypoint_x,waypoint_y,distance):
+			self.current_waypoint_index+=1
+		
+		if self.current_waypoint_index == len(wp_position):
+			self.current_waypoint_index=0
+		
+
+
+
+
+
+
+
+
+
 
 		# reduce current speed according lidar positional error
 		self.target_speed_ms -= ( self.ratio_ai * self.lidar_direction_k_speed * abs(self.actual_lidar_direction_error) + (1.0 - self.ratio_ai) *self.ai_direction_k_speed*abs(self.line_pos_unfiltered) )*self.max_speed_ms 
