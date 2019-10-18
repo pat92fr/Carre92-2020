@@ -9,6 +9,42 @@ import math
 def is_near_waypoint(x,y,waypoint_x,waypoint_y,distance):
 	return ( (x-waypoint_x)*(x-waypoint_x) + (y-waypoint_y)*(y-waypoint_y) ) < (distance*distance)
 
+def CatmullRomSpline(p0, p1, p2, p3, nPoints=100):
+    """ Compute trajectories"""
+    P0, P1, P2, P3 = map(np.array, [p0, p1, p2, p3])
+    # Calculate t0 to t4
+    alpha = 0.8
+    beta = alpha
+    def tj(ti, Pi, Pj):
+        xi, yi = Pi
+        xj, yj = Pj
+        return (((xj- xi)**2 + (yj-yi)**2)**beta)**alpha + ti
+
+    t0 = 0
+    t1 = tj(t0, P0, P1)
+    t2 = tj(t1, P1, P2)
+    t3 = tj(t2, P2, P3)
+
+    # Only calculate points between P1 and P2
+    t = np.linspace(t1, t2, nPoints)
+    # Reshape so that we can multiply by the points P0 to P3
+    # and get a point for each value of t
+    t = t .reshape(len(t), 1)
+
+    A1 = (t1 - t) / (t1 - t0) * P0 + (t - t0) / (t1 - t0) * P1
+    A2 = (t2 - t) / (t2 - t1) * P1 + (t - t1) / (t2 - t1) * P2
+    A3 = (t3 - t) / (t3 - t2) * P2 + (t - t2) / (t3 - t2) * P3
+#    print("t:", t)
+#    print("A1:", A1)
+#    print("A2:", A2)
+#    print("A3:", A3)
+
+    B1 = (t2 - t) / (t2 - t0) * A1 + (t - t0) / (t2 - t0) * A2
+    B2 = (t3 - t) / (t3 - t1) * A2 + (t - t1) / (t3 - t1) * A3
+    C  = (t2 - t) / (t2 - t1) * B1 + (t - t1) / (t2 - t1) * B2
+
+    #print(">>>>>>>>>>>>>>>>>>>>>>>>>", C)
+    return C
 
 class robot_controller:
 
@@ -17,7 +53,7 @@ class robot_controller:
 		# speed controller settings
 		self.min_speed_ms = 0.1 # 0.5 m/s
 		self.cornering_speed = 0.2
-		self.max_speed_ms = 3.0 # 3.5 m/s
+		self.max_speed_ms = 6.0 # 3.5 m/s
 
 		self.acceleration = 0.05 # m/s per 1/60eme
 		self.deceleration = 0.2 # m/s per 1/60eme
@@ -214,10 +250,25 @@ class robot_controller:
 			heading +=360 
 
 
+		P2 = [position_x,position_y]
+		P1 = [position_x-2.0*math.cos(math.radians(heading)),position_y-2.0*math.sin(math.radians(heading))]
+
 		target_waypoint_pose = wp_position[self.current_waypoint_index]
 		waypoint_x = target_waypoint_pose[0]
 		waypoint_y = target_waypoint_pose[1]
-		target_heading = math.degrees(math.atan2( waypoint_y-position_y, waypoint_x-position_x ))
+		waypoint_heading = target_waypoint_pose[2]
+		P3 = [waypoint_x,waypoint_y]
+		P4 = [ wp_position[(self.current_waypoint_index+1)%len(wp_position)][0], wp_position[(self.current_waypoint_index+1)%len(wp_position)][1] ]
+
+
+		#P4 = [waypoint_x+2.0*math.cos(math.radians(waypoint_heading)),waypoint_y+2.0*math.sin(math.radians(waypoint_heading))]
+
+		C = CatmullRomSpline(P1, P2, P3, P4, 20)
+
+		target_x = C[1][0]
+		target_y = C[1][1]
+
+		target_heading = math.degrees(math.atan2( target_y-position_y, target_x-position_x ))
 		
 		delta_angle = target_heading-heading
 		if delta_angle > 180:
