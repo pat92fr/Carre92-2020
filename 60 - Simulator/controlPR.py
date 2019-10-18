@@ -7,7 +7,7 @@ import math
 
 # helper : return True if the waypoint is near the current position
 def is_near_waypoint(x,y,waypoint_x,waypoint_y,distance):
-	return math.dist( (x,y), (waypoint_x,waypoint_y) ) < distance
+	return ( (x-waypoint_x)*(x-waypoint_x) + (y-waypoint_y)*(y-waypoint_y) ) < (distance*distance)
 
 
 class robot_controller:

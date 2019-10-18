@@ -19,7 +19,7 @@ media_dir = 'mediaPR'
 ### https://github.com/jlevy44/UnrealAI/blob/master/CarAI/joshua_work/game/src/simulation.py
 
 from my_math import *
-import controlMKP
+import controlPR
 from trackPR import *
 
 import numpy as np
@@ -563,6 +563,30 @@ class Simulator(ShowBase):
 		self.world.doPhysics(dt)
 		#world.doPhysics(dt, 10, 1.0/180.0)
 
+
+
+
+
+
+
+
+
+
+		# test
+		for op in wp_position :
+			waypoint_x = op[0]
+			waypoint_y = op[1]
+			x = self.current_position.getX()
+			y = self.current_position.getY()
+			distance = 1.0
+			if controlPR.is_near_waypoint(x,y,waypoint_x,waypoint_y,distance):
+				print(str(op))
+		print('-')
+
+
+
+
+
 		return task.cont
 
 	def load_MKP_map(self):
@@ -608,6 +632,16 @@ class Simulator(ShowBase):
 			#cnp.show()
 			self.plotNodePath.append(onp)
 			self.plotCollisionNodePath.append(cnp)
+
+		# load wp
+		self.waypointNodePath = []
+		for op in wp_position :
+			onp = self.loader.loadModel(panda_root_dir + media_dir + '/' + 'waypoint.bam')
+			onp.setScale(1.0, 1.0, 1.0)
+			onp.setHpr(0.0, 90.0, op[2])
+			onp.setPos(op[0],op[1],0.01)	
+			onp.reparentTo(self.render)
+			self.waypointNodePath.append(onp)
 
         # Lights
 		self.render.clearLight()
@@ -687,7 +721,7 @@ dataset_file = open(os_root_dir+dataset_dir+'/'+'dataset.txt',  'w')
 print("Done!")
 
 print("Init external robot controller...")
-rc = controlMKP.robot_controller(); 
+rc = controlPR.robot_controller(); 
 print("Done!")
 
 
