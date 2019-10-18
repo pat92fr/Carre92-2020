@@ -7,8 +7,12 @@
 steering_clamp = 35.0      # degree
 steering_increment = 360.0 # 160 degree per second
 
-root_dir = 'c:/tmp'
+## CONSTANTS #################################################################
+
+os_root_dir = 'c:/tmp/'
+panda_root_dir = '/c/tmp/'
 dataset_dir = 'dataset'
+media_dir = 'mediaPR'
 
 ## GLOBALS ########################################################################
 
@@ -16,6 +20,7 @@ dataset_dir = 'dataset'
 
 from my_math import *
 import controlMKP
+from trackPR import *
 
 import numpy as np
 import math
@@ -108,7 +113,7 @@ def genLabelText(text, i):
     return OnscreenText(text=text, parent=base.a2dTopLeft, pos=(0.07, -.06 * i - 0.1),
                         fg=(1, 1, 1, 1), align=TextNode.ALeft, shadow=(0, 0, 0, 0.5), scale=.05)
 
-class MyApp(ShowBase):
+class Simulator(ShowBase):
 
 	def __init__(self, rc):
 
@@ -134,6 +139,18 @@ class MyApp(ShowBase):
 		self.recordText = genLabelText("r: Record", 3)
 		self.homeText = genLabelText("h: Home", 4)
 
+        # application state
+		self.quit = False
+		self.autopilot = False
+		self.recording = False
+
+		# keyboard events
+		self.accept("q",     self.doQuit)
+		self.accept("a",     self.doAutopilot)
+		self.accept("m",     self.doManualpilot)
+		self.accept("r",     self.doRecord)
+		self.accept("h",     self.setHome)
+
 		# OSD graphics
 		self.speed_o_meter = OnscreenText(text="0km/h", pos=(1.4,0.80), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.25)
 		self.lap_timer = globalClock.getFrameTime()
@@ -141,15 +158,14 @@ class MyApp(ShowBase):
 		self.best_lap_timer = 999.9
 		self.best_lap_timer_text = OnscreenText(text=str(round(self.best_lap_timer,1)) +"s", pos=(1.4,0.50), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
 		self.lap_counter = 0
-		
+		# distance
 		self.total_distance = 0.0
 		self.lap_distance = 0.0
 		self.lap_distance_text = OnscreenText(text=str(round(self.lap_distance,1)) +"m", pos=(1.7,0.50), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
-
 		# heading
 		self.heading = 0.0
 		self.heading_text = OnscreenText(text=str(int(self.heading)) +"deg", pos=(1.7,0.4), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
-
+		# controler settings
 		self.slider_max_speed = DirectSlider(range=(0,10), value=self.robot_controller.max_speed_ms, pageSize=0.1, command=self.slider_max_speed_change, scale=0.4, pos = (0.0,0.0,0.90))
 		self.text_max_speed = OnscreenText(text="Vmax " + str(self.robot_controller.max_speed_ms)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.90))
 		
@@ -165,17 +181,6 @@ class MyApp(ShowBase):
 		self.slider_lidar_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.lidar_direction_k_speed, pageSize=0.1, command=self.slider_lidar_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.70))
 		self.text_lidar_direction_k_speed = OnscreenText(text="Lidar Direction K speed " + str(round(self.robot_controller.lidar_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.70))
 
-        # application state
-		self.quit = False
-		self.autopilot = False
-		self.recording = False
-
-		# keyboard events
-		self.accept("q",     self.doQuit)
-		self.accept("a",     self.doAutopilot)
-		self.accept("m",     self.doManualpilot)
-		self.accept("r",     self.doRecord)
-		self.accept("h",     self.setHome)
 
         # gamepad
 		self.gamepad = None
@@ -201,7 +206,6 @@ class MyApp(ShowBase):
 		# debugNode.showNormals(False)
 		# debugNP = render.attachNewNode(debugNode)
 		# debugNP.show()
-
 		self.world = BulletWorld()
 		self.world.setGravity(Vec3(0, 0, -9.81))
 		#self.world.setDebugNode(debugNP.node())
@@ -225,7 +229,7 @@ class MyApp(ShowBase):
 		self.chassisNP = self.worldNP.attachNewNode(self.chassisPhysNode)
 		self.world.attachRigidBody(self.chassisPhysNode)
 
-		model = loader.loadModel('/c/tmp/mediaPR/chassis.bam')
+		model = loader.loadModel(panda_root_dir + media_dir + '/' + 'chassis.bam')
 		model.setHpr(180, 0, 180)
 		model.setPos(0, 0, 0.1)
 		model.reparentTo(self.chassisNP)
@@ -238,19 +242,19 @@ class MyApp(ShowBase):
 		empattement = 0.48
 		hauteur = 0.35
 
-		FRwheelNP = loader.loadModel('/c/tmp/mediaPR/wheel.bam')
+		FRwheelNP = loader.loadModel(panda_root_dir + media_dir + '/' + 'wheel.bam')
 		FRwheelNP.reparentTo(self.worldNP)
 		self.addWheel(Point3(voie/2.0, empattement/2.0, hauteur), True, FRwheelNP)
 
-		FLwheelNP = loader.loadModel('/c/tmp/mediaPR/wheel.bam')
+		FLwheelNP = loader.loadModel(panda_root_dir + media_dir + '/' + 'wheel.bam')
 		FLwheelNP.reparentTo(self.worldNP)
 		self.addWheel(Point3(-voie/2.0, empattement/2.0, hauteur), True, FLwheelNP)
 
-		RRwheelNP = loader.loadModel('/c/tmp/mediaPR/wheel.bam')
+		RRwheelNP = loader.loadModel(panda_root_dir + media_dir + '/' + 'wheel.bam')
 		RRwheelNP.reparentTo(self.worldNP)
 		self.addWheel(Point3(voie/2.0, -empattement/2.0, hauteur), False, RRwheelNP)
 
-		RLwheelNP = loader.loadModel('/c/tmp/mediaPR/wheel.bam')
+		RLwheelNP = loader.loadModel(panda_root_dir + media_dir + '/' + 'wheel.bam')
 		RLwheelNP.reparentTo(self.worldNP)
 		self.addWheel(Point3(-voie/2.0, -empattement/2.0, hauteur), False, RLwheelNP)
 
@@ -283,8 +287,8 @@ class MyApp(ShowBase):
 			#print(cnp.node().name)
 			self.lidar_distance[cnp.node().name] = 0.0
 
-		self.chassisNP.setPos(0.0, -0.75, 0.4)
-		self.chassisNP.setHpr(90, 0.0, 0.0)
+		self.chassisNP.setPos(start_position[0], start_position[1], 0.4)
+		self.chassisNP.setHpr(start_position[2], 0.0, 0.0)
 
 		# camera
 		self.camLens.setFov(100)
@@ -338,29 +342,14 @@ class MyApp(ShowBase):
 
 	def addWheel(self, pos, front, np):
 		wheel = self.vehicle.createWheel()
-
 		#http://blender3d.org.ua/forum/game/iwe/upload/Vehicle_Simulation_With_Bullet.pdf
-
 		wheel.setNode(np.node())
 		wheel.setChassisConnectionPointCs(pos)
 		wheel.setFrontWheel(front)
-
-		# wheel.setWheelDirectionCs(Vec3(0, 0, -1))
-		# wheel.setWheelAxleCs(Vec3(1, 0, 0))
-		# wheel.setWheelRadius(0.03)
-		# wheel.setMaxSuspensionTravelCm(5.0) #cm
-
 		wheel.setWheelDirectionCs(Vec3(0, 0, -1))
 		wheel.setWheelAxleCs(Vec3(1, 0, 0))
 		wheel.setWheelRadius(0.1)
 		wheel.setMaxSuspensionTravelCm(15.0) #cm
-
-		# wheel.setSuspensionStiffness(90.0)
-		# wheel.setWheelsDampingRelaxation(0.3)
-		# wheel.setWheelsDampingCompression(0.2) 
-		# wheel.setFrictionSlip(0.8);
-		# wheel.setRollInfluence(0.7)
-
 		wheel.setSuspensionStiffness(80.0)
 		wheel.setWheelsDampingRelaxation(0.8)
 		wheel.setWheelsDampingCompression(0.6) 
@@ -387,8 +376,6 @@ class MyApp(ShowBase):
 		self.robot_controller.lidar_direction_k_speed = float(self.slider_lidar_direction_k_speed['value'])
 		self.text_lidar_direction_k_speed.setText("LIDAR Direction K speed " + str(round(self.robot_controller.lidar_direction_k_speed,2)))
 
-
-
 	def physics_task(self, task):
 
 		dt = globalClock.getDt()
@@ -409,34 +396,19 @@ class MyApp(ShowBase):
 					distance = (point-current).length()
 					if self.lidar_distance[cnp.node().name] > distance:
 						self.lidar_distance[cnp.node().name] = distance
-		#print(self.lidar_distance)
-# TODO : construire un vecteur avec par défaut la distance max et si collision, la distance mesurée
-
-
-			#print("."+ str(entry))
-			# if entry.getFromNodePath() == self.LidarLeftCNP and self.lidar_distance_gauche == self.lidar_maximum_distance:
-			# 	point = entry.getSurfacePoint(render)
-			# 	current = self.chassisNP.getPos()
-			# 	distance = (point-current).length()
-			# 	self.lidar_distance_gauche = distance
-			# 	#print("lidar_distance_gauche:"+ str(self.lidar_distance_gauche))
-			# if entry.getFromNodePath() == self.LidarRightCNP  and self.lidar_distance_droit == self.lidar_maximum_distance:
-			# 	point = entry.getSurfacePoint(render)
-			# 	current = self.chassisNP.getPos()
-			# 	distance = (point-current).length()
-			# 	self.lidar_distance_droit = distance
-			# 	#print("lidar_distance_droit:"+ str(self.lidar_distance_droit))
-			# if entry.getIntoNodePath() == self.archCNP:
-			# 	if globalClock.getFrameTime() > self.lap_timer + 3.0:
-			# 		print(str(round(globalClock.getFrameTime()-self.lap_timer,1)) +"s")
-			# 		if self.lap_counter > 0:
-			# 			self.best_lap_timer = min(globalClock.getFrameTime()-self.lap_timer,self.best_lap_timer)
-			# 		self.lap_timer = globalClock.getFrameTime()
-			# 		self.lap_counter += 1
-			# 		self.lap_distance = 0.0
+			if entry.getIntoNodePath() == self.archCNP:
+				if globalClock.getFrameTime() > self.lap_timer + 3.0:
+					print(str(round(globalClock.getFrameTime()-self.lap_timer,1)) +"s")
+					if self.lap_counter > 0:
+						self.best_lap_timer = min(globalClock.getFrameTime()-self.lap_timer,self.best_lap_timer)
+					self.lap_timer = globalClock.getFrameTime()
+					self.lap_counter += 1
+					self.lap_distance = 0.0
 		self.lap_timer_text.setText(text=str(round(globalClock.getFrameTime()-self.lap_timer,1)) +"s")
 		self.best_lap_timer_text.setText(text=str(round(self.best_lap_timer,1)) +"s")
 
+
+		#print(self.lidar_distance)
 
 		# if gamepad detected in human mode
 		# if self.gamepad and not self.autopilot:
@@ -476,10 +448,6 @@ class MyApp(ShowBase):
 
 		# elif not self.gamepad and not self.autopilot:
 
-		# reset control state
-		#self.steering = 0.0
-		self.engineForce = 0.0
-		self.brakeForce = 0.0
 
 		# actual speed computation
 		self.current_position = self.chassisNP.getPos()
@@ -495,7 +463,11 @@ class MyApp(ShowBase):
 
 		# heading
 		self.heading = self.chassisNP.getH()
-		self.heading_text.setText(str(int(self.heading))+ "deg")
+		self.heading_text.setText('(' + str(round(self.current_position.getX(),1)) +',' + str(round(self.current_position.getY(),1)) +')   ' + str(int(self.heading))+ "deg")
+
+		# reset control state
+		self.engineForce = 0.0
+		self.brakeForce = 0.0
 
 		# chose controller
 		if not self.autopilot: # manual controller
@@ -518,17 +490,17 @@ class MyApp(ShowBase):
 			
 			# keys to steering
 			if self.left_button and not self.right_button:
-				self.steering += dt*self.steering_increment*0.2
+				self.steering += dt*self.steering_increment*0.15
 				self.steering = min(self.steering, self.steering_clamp)
 			if not self.left_button and self.right_button:
-				self.steering -= dt*self.steering_increment*0.2
+				self.steering -= dt*self.steering_increment*0.15
 				self.steering = max(self.steering, -self.steering_clamp)
 			if not self.left_button and not self.right_button:
 				if self.steering < 0:
-					self.steering += dt*self.steering_increment*0.10
+					self.steering += dt*self.steering_increment*0.4
 					self.steering = min(self.steering, 0)
 				if self.steering > 0:
-					self.steering -= dt*self.steering_increment*0.10
+					self.steering -= dt*self.steering_increment*0.4
 					self.steering = max(self.steering, 0)
 
 
@@ -595,63 +567,56 @@ class MyApp(ShowBase):
 
 	def load_MKP_map(self):
 
-        # load the environment model.
-		self.scene = self.loader.loadModel("/c/tmp/mediaPR/env")
-		self.scene.reparentTo(self.render)
-		self.scene.setScale(50, 50, 50)
-		self.scene.setPos(0.0, 0.0, -0.001)
+        # load track
+		self.trackNodePath = self.loader.loadModel(panda_root_dir + media_dir + '/' + 'ground.bam')
+		self.trackNodePath.setScale(1.0, 1.0, 1.0)
+		self.trackNodePath.setPos(0.0, 0.0, 0.0)
+		self.trackNodePath.setHpr(0.0, 90.0, 0.0)
+		self.trackNodePath.reparentTo(self.render)
 
-        # load circuit model
-		#self.groundNodePath = self.loader.loadModel("/c/tmp/mediaMKP/ground.bam")
-		#self.bordersNodePath = self.loader.loadModel("/c/tmp/mediaMKP/borders.bam")
-		#self.bordersNodePath.setCollideMask(BitMask32.bit(2))
-		#self.bordertopNodePath = self.loader.loadModel("/c/tmp/mediaMKP/bordertop.bam")
+		# load arch
+		self.archNodePath = self.loader.loadModel(panda_root_dir + media_dir + '/' + 'arch.bam')
+		self.archNodePath.setScale(2.6, 2.6, 2.6)
+		self.archNodePath.setPos(-17.2, 22.5, 0.0)
+		self.archNodePath.setHpr(0.0, 90.0, 90.0)
+		self.archNodePath.reparentTo(self.render)
 
-        #
-		#self.circuitNodePath = NodePath('circuit')
-		#self.groundNodePath.reparentTo(self.circuitNodePath)
-		#self.bordersNodePath.reparentTo(self.circuitNodePath)
-		#self.bordertopNodePath.reparentTo(self.circuitNodePath)
-		
+		# Collision solids/nodes for arch
+		self.archCN = CollisionNode('archCN')
+		self.archCS = CollisionBox((-9.0,0.0,1.0), 0.2, 1.0, 1.0)
+		self.archCN.addSolid(self.archCS)
+		self.archCN.setIntoCollideMask(BitMask32.bit(1))
+		self.archCN.setFromCollideMask(BitMask32.allOff())
+		self.archCNP = self.archNodePath.attachNewNode(self.archCN)
+		#self.archCNP.show()
 
-        # load obstacle model
-		self.obstacleNodePath = []
-		obstable_position = [ 
-			(0.0, 0.0, 0.0),	(0.0, -2.0, 0.0), 
-			(10.0, 10.0, 0.0),	(12.0, 12.0, 0.0), 
-			(-10.0 ,10, 0.0),	(-12.0, 12.0, 0.0),  
-			(0.0 ,10, 0.0),		(0.0, 12.0, 0.0),   
-			(-10.0 ,0, 0.0),	(-12.0, -2.0, 0.0),   
-			(10.0 ,0, 0.0),		(12.0, -2.0, 0.0),   
-			(10.0 ,5, 0.0),		(12.0, 5.0, 0.0),   
-			(-10.0 ,5, 0.0),	(-12.0, 5.0, 0.0)  
-			 ]
-		# tex = loader.loadTexture('/c/tmp/mediaMKP/pink.png')
-		for op in obstable_position :
-			onp = self.loader.loadModel("/c/tmp/mediaPR/plot.bam")
-			#onp.setTexture(tex, 1)
-			###onp.setCollideMask(BitMask32.bit(2))
+        # load plots and do collide
+		self.plotNodePath = []
+		self.plotCollisionNodePath = []
+		for op in plot_position :
+			onp = self.loader.loadModel(panda_root_dir + media_dir + '/' + 'plot.bam')
 			onp.setScale(2.0, 2.0, 2.0)
 			onp.setHpr(0.0, 180.0, 0.0)
 			onp.setPos(op)
 			onp.reparentTo(self.render)
-			self.obstacleNodePath.append(onp)
-
-
-
-		# self.circuitNodePath.reparentTo(self.render)
-		# self.circuitNodePath.setScale(1.0, 1.0, 1.0)
-		# self.circuitNodePath.setPos(0.0,0.0,0.2)
-		# self.circuitNodePath.setHpr(0,180, 0)
+			cn = CollisionNode('plotCN')
+			cs = CollisionSphere(0.0,0.0,-0.1,0.1)
+			cn.addSolid(cs)
+			cn.setIntoCollideMask(BitMask32.bit(2))
+			cn.setFromCollideMask(BitMask32.allOff())
+			cnp = onp.attachNewNode(cn)
+			#cnp.show()
+			self.plotNodePath.append(onp)
+			self.plotCollisionNodePath.append(cnp)
 
         # Lights
 		self.render.clearLight()
-
+		# Ambiant Light
 		self.alight = AmbientLight('ambientLight')
 		self.alight.setColor(Vec4(0.5, 0.5, 0.5, 1))
 		self.alightNP = self.render.attachNewNode(self.alight)
 		self.render.setLight(self.alightNP)
-
+		# Directional light
 		self.directionalLight = DirectionalLight('directionalLight')
 		self.directionalLight.setDirection(Vec3(1, 1, -2))
 		self.directionalLight.setSpecularColor((0.8, 0.8, 0.8, 1))
@@ -659,7 +624,6 @@ class MyApp(ShowBase):
 		self.directionalLight.setColorTemperature(self.temperature)
 		self.directionalLightNP = self.render.attachNewNode(self.directionalLight)
 		self.render.setLight(self.directionalLightNP)
-
         # Per-pixel lighting and shadows are initially off
 		#self.directionalLightNP.node().setShadowCaster(True, 512, 512)
 		self.render.setShaderAuto()
@@ -681,8 +645,8 @@ class MyApp(ShowBase):
 		self.recording = True
 
 	def setHome(self):
-		self.chassisNP.setPos(0.0, -0.75, 0.4)
-		self.chassisNP.setHpr(90, 0.0, 0.0)
+		self.chassisNP.setPos(start_position[0], start_position[1], 0.4)
+		self.chassisNP.setHpr(start_position[2], 0.0, 0.0)
 		self.lap_counter = 0
 		self.total_distance = 0
 		self.lap_distance = 0
@@ -716,10 +680,10 @@ print("Done!")
 
 print("Create dataset file...")
 try:
-    mkdir(root_dir+'/'+dataset_dir)
+    mkdir(os_root_dir+dataset_dir)
 except FileExistsError:
     pass
-dataset_file = open(root_dir+'/'+dataset_dir+'/'+'dataset.txt',  'w')
+dataset_file = open(os_root_dir+dataset_dir+'/'+'dataset.txt',  'w')
 print("Done!")
 
 print("Init external robot controller...")
@@ -728,7 +692,7 @@ print("Done!")
 
 
 print("Init sim engine...")
-app = MyApp(rc)
+app = Simulator(rc)
 print("Done!")
 
 # game loop
