@@ -566,30 +566,6 @@ class Simulator(ShowBase):
 		self.world.doPhysics(dt)
 		#world.doPhysics(dt, 10, 1.0/180.0)
 
-
-
-
-
-
-
-
-
-
-		# # test
-		# for op in wp_position :
-		# 	waypoint_x = op[0]
-		# 	waypoint_y = op[1]
-		# 	x = self.current_position.getX()
-		# 	y = self.current_position.getY()
-		# 	distance = 1.0
-		# 	if controlPR.is_near_waypoint(x,y,waypoint_x,waypoint_y,distance):
-		# 		print(str(op))
-		# print('-')
-
-
-
-
-
 		return task.cont
 
 	def load_MKP_map(self):
@@ -617,24 +593,24 @@ class Simulator(ShowBase):
 		self.archCNP = self.archNodePath.attachNewNode(self.archCN)
 		#self.archCNP.show()
 
-        # load plots and do collide
-		self.plotNodePath = []
-		self.plotCollisionNodePath = []
-		for op in plot_position :
+        # load anchor and do collide
+		self.anchorNodePath = []
+		self.anchorCollisionNodePath = []
+		for op in anchor_position :
 			onp = self.loader.loadModel(panda_root_dir + media_dir + '/' + 'plot.bam')
 			onp.setScale(2.0, 2.0, 2.0)
 			onp.setHpr(0.0, 180.0, 0.0)
 			onp.setPos(op)
 			onp.reparentTo(self.render)
-			cn = CollisionNode('plotCN')
+			cn = CollisionNode('anchorCN')
 			cs = CollisionSphere(0.0,0.0,-0.1,0.1)
 			cn.addSolid(cs)
 			cn.setIntoCollideMask(BitMask32.bit(2))
 			cn.setFromCollideMask(BitMask32.allOff())
 			cnp = onp.attachNewNode(cn)
 			#cnp.show()
-			self.plotNodePath.append(onp)
-			self.plotCollisionNodePath.append(cnp)
+			self.anchorNodePath.append(onp)
+			self.anchorCollisionNodePath.append(cnp)
 
 		# load wp
 		self.waypointNodePath = []

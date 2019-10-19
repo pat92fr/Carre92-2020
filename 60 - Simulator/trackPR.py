@@ -2,8 +2,8 @@
 # start position (x,y,heading)
 start_position = (-14.5,-4.0,0.0)
 
-# plots position
-plot_position = [ 
+# anchor position
+anchor_position = [ 
 	(-12.0,  11.5,  0.0),	
 	( -7.5,   2.0,  0.0), 
 	( -7.5,  13.5,  0.0),	

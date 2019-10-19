@@ -47,11 +47,11 @@ def CatmullRomSpline(p0, p1, p2, p3, nPoints=100):
     return C
 
 
-# select plots : return a list of plot positions [ (x1,y1), (x2,y2), ..] from global plot positions, 
-# each plot of the list is in 'distance' range of current position (x,y)
-def select_plots(x,y,distance):
+# select anchors : return a list of anchor positions [ (x1,y1), (x2,y2), ..] from global anchor positions, 
+# each anchor of the list is in 'distance' range of current position (x,y)
+def select_anchors(x,y,distance):
 	list = []
-	for p in plot_position:
+	for p in anchor_position:
 		if point_to_point_distance(x,y,p[0],p[1],distance):
 			list.append( (p[0],p[1]) )
 	return list
@@ -64,29 +64,28 @@ def select_plots(x,y,distance):
 def cost_function_primitive(x,a=0.5):
 	return max(0.0,1.0-x/a)
 # this primitive is used in order to update the waight of particles.
-# the range around a plot is 50cm
+# the range around an anchor is 50cm
 
 
 
-# compute one plot weight
-# from the estimated plot position, and the list of plots in range,
+# compute one anchor weight
+# from the estimated anchor position, and the list of anchors in range,
 # compute the weight using the cost function primitive
-def compute_one_plot_weight(x,y,plots_xy_in_range):
+def compute_one_plot_weight(x,y,anchors_xy_in_range):
 	weight = 0.0
-	for p in plots_xy_in_range:
+	for p in anchors_xy_in_range:
 		weight += cost_function_primitive(math.sqrt( (x-p[0])*(x-p[0]) + (y-p[1])*(y-p[1]) ))
 	return weight
 
 
-
-# compute one particle weight, based on the list of estimated plot position and the list of plots in range
+# compute one particle weight, based on the list of estimated anchor position and the list of anchors in range
 # compute the average weight using the cost function primitive
-def compute_one_particles_weight(plots_xy,plots_xy_in_range):
+def compute_one_particles_weight(anchors_xy,anchors_xy_in_range):
 		average_weight = 0.0
-		if plots_xy:	
-			for p in plots_xy:
-				average_weight += compute_one_plot_weight(p[0],p[1],plots_xy_in_range)
-			average_weight /= len(plots_xy)		
+		if anchors_xy:	
+			for p in anchors_xy:
+				average_weight += compute_one_plot_weight(p[0],p[1],anchors_xy_in_range)
+			average_weight /= len(anchors_xy)		
 		return average_weight
 
 
@@ -188,9 +187,9 @@ class robot_controller:
 		self.actual_speed_ms = 0.8*self.actual_speed_ms + 0.24*actual_speed_ms
 
 
-		# process LIDAR point clound to find plots
-		plots = []
-		plot_radius = 0.1 #m
+		# process LIDAR point clound to find anchors
+		anchors = []
+		anchor_radius = 0.1 #m
 		threshold_max_distance = 9.99 #m
 		# find cluster
 		cluster_radius = 0.2 #m
@@ -213,7 +212,7 @@ class robot_controller:
 			elif in_cluster and (distance >= threshold_max_distance): # end of current cluster
 				# regsiter current cluster
 				current_cluster_median_angle = (current_cluster_end_angle+current_cluster_begin_angle)/2.0
-				plots.append( (current_cluster_median_angle, current_cluster_min_distance+plot_radius ))
+				anchors.append( (current_cluster_median_angle, current_cluster_min_distance+anchor_radius ))
 				in_cluster = False
 
 			elif in_cluster and (distance < threshold_max_distance) and (abs(distance-current_cluster_min_distance)<=cluster_radius) : # inside current cluster, new distance
@@ -223,7 +222,7 @@ class robot_controller:
 			elif in_cluster and (distance < threshold_max_distance) and (abs(distance-current_cluster_min_distance)>cluster_radius) : # end of current cluster and new cluster detection
 				# regsiter current cluster
 				current_cluster_median_angle = (current_cluster_end_angle+current_cluster_begin_angle)/2.0
-				plots.append( (current_cluster_median_angle, current_cluster_min_distance+plot_radius ))
+				anchors.append( (current_cluster_median_angle, current_cluster_min_distance+anchor_radius ))
 				in_cluster = False
 				# start new cluster
 				in_cluster = True
@@ -234,36 +233,43 @@ class robot_controller:
 			elif not in_cluster and (distance >= threshold_max_distance):
 				in_cluster = False #nop
 
-		# plots contain (angle,distance) for each visible plot (in range 10m)
-		#print(plots)
+		# anchors contain (angle,distance) for each visible anchors (in range 10m)
+		#print(anchors)
 
 		# for each particles
 		# for each particles
 		# for each particles
 		particles = []
 		particles.append( (position_x,position_y,heading) ) # P0
-		particles.append( (position_x+0.2*math.cos(math.radians(heading)),position_y+0.2*math.sin(math.radians(heading)),heading+2.0 ) ) # P1
+		particles.append( (position_x+0.1*math.cos(math.radians(heading)),position_y+0.1*math.sin(math.radians(heading)),heading+1.0 ) ) # P1
+		particles.append( (position_x+0.2*math.cos(math.radians(heading+90)),position_y+0.2*math.sin(math.radians(heading+90)),heading+2.0 ) ) # P2
+		particles.append( (position_x+0.3*math.cos(math.radians(heading+180)),position_y+0.3*math.sin(math.radians(heading+180)),heading-3.0 ) ) # P3
+		particles.append( (position_x+0.4*math.cos(math.radians(heading+270)),position_y+0.4*math.sin(math.radians(heading+270)),heading-5.0 ) ) # P4
 
+		# compute the weight of particles and normalize
+		weights = []
+		weight_sum = 0.0
 		for pa in particles:
-			# debug : process plot list (angle,distance) to calculate (x,y) of each plot, from current position (particle)
-			plots_xy = []
-			for p in plots:
-				x = pa[0] + p[1]*math.cos(math.radians(p[0]+pa[2]))
-				y = pa[1] + p[1]*math.sin(math.radians(p[0]+pa[2]))
-				plots_xy.append( (x,y) )
+			# for each particle (x,y,heading), compute the anchor positions (px,py) from observation (distance,heading) and particule curent position (x,y)
+			anchors_xy = []
+			for a in anchors:
+				px = pa[0] + a[1]*math.cos(math.radians(a[0]+pa[2]))
+				py = pa[1] + a[1]*math.sin(math.radians(a[0]+pa[2]))
+				anchors_xy.append( (px,py) )
+			#print(anchors_xy)
 
-			#print(plots_xy)
-
-			# debug : print plots in range in order to compare estimated plot (x,y) with ground truth plot position (x,y)
-			plots_xy_in_range = select_plots(pa[0],pa[1],10.0+1.0)
-
+			# list the plot plots in range in order to compare estimated plot (x,y) with ground truth plot position (x,y)
+			anchors_xy_in_range = select_anchors(pa[0],pa[1],10.0+1.0)
 			#print(plots_xy_in_range)
 
-			weight = compute_one_particles_weight(plots_xy,plots_xy_in_range)
+			weight = compute_one_particles_weight(anchors_xy,anchors_xy_in_range)
+			weight_sum += weight
+			weights.append(weight)
 
-			print(weight)
+		if weight_sum>0.0:
+			weights[:] = [w / weight_sum for w in weights]
 
-
+		print(weights)
 
 
 
