@@ -5,8 +5,8 @@ from trackPR import *
 import numpy as np
 import math
 
-# helper : return True if the waypoint is near the current position
-def is_near_waypoint(x,y,waypoint_x,waypoint_y,distance):
+# helper : return True if the waypoint (wx,wy) is near the current position (x,y)
+def point_to_point_distance(x,y,waypoint_x,waypoint_y,distance):
 	return ( (x-waypoint_x)*(x-waypoint_x) + (y-waypoint_y)*(y-waypoint_y) ) < (distance*distance)
 
 def CatmullRomSpline(p0, p1, p2, p3, nPoints=100):
@@ -45,6 +45,53 @@ def CatmullRomSpline(p0, p1, p2, p3, nPoints=100):
 
     #print(">>>>>>>>>>>>>>>>>>>>>>>>>", C)
     return C
+
+
+# select plots : return a list of plot positions [ (x1,y1), (x2,y2), ..] from global plot positions, 
+# each plot of the list is in 'distance' range of current position (x,y)
+def select_plots(x,y,distance):
+	list = []
+	for p in plot_position:
+		if point_to_point_distance(x,y,p[0],p[1],distance):
+			list.append( (p[0],p[1]) )
+	return list
+
+
+# primitive for cost function : y=f(x)
+# x=0 ==> y=1
+# x=a ==> y=0
+# x>a ==> y=0
+def cost_function_primitive(x,a=0.5):
+	return max(0.0,1.0-x/a)
+# this primitive is used in order to update the waight of particles.
+# the range around a plot is 50cm
+
+
+
+# compute one plot weight
+# from the estimated plot position, and the list of plots in range,
+# compute the weight using the cost function primitive
+def compute_one_plot_weight(x,y,plots_xy_in_range):
+	weight = 0.0
+	for p in plots_xy_in_range:
+		weight += cost_function_primitive(math.sqrt( (x-p[0])*(x-p[0]) + (y-p[1])*(y-p[1]) ))
+	return weight
+
+
+
+# compute one particle weight, based on the list of estimated plot position and the list of plots in range
+# compute the average weight using the cost function primitive
+def compute_one_particles_weight(plots_xy,plots_xy_in_range):
+		average_weight = 0.0
+		if plots_xy:	
+			for p in plots_xy:
+				average_weight += compute_one_plot_weight(p[0],p[1],plots_xy_in_range)
+			average_weight /= len(plots_xy)		
+		return average_weight
+
+
+
+
 
 class robot_controller:
 
@@ -190,20 +237,31 @@ class robot_controller:
 		# plots contain (angle,distance) for each visible plot (in range 10m)
 		#print(plots)
 
-		# debug : process plot list (angle,distance) point clound to calculate (x,y) of each plot
-		plots_xy = []
-		for p in plots:
-			x = position_x + p[1]*math.cos(math.radians(p[0]+heading))
-			y = position_y + p[1]*math.sin(math.radians(p[0]+heading))
-			plots_xy.append( (x,y) )
+		# for each particles
+		# for each particles
+		# for each particles
+		particles = []
+		particles.append( (position_x,position_y,heading) ) # P0
+		particles.append( (position_x+0.2*math.cos(math.radians(heading)),position_y+0.2*math.sin(math.radians(heading)),heading+2.0 ) ) # P1
 
-		print(plots_xy)
+		for pa in particles:
+			# debug : process plot list (angle,distance) to calculate (x,y) of each plot, from current position (particle)
+			plots_xy = []
+			for p in plots:
+				x = pa[0] + p[1]*math.cos(math.radians(p[0]+pa[2]))
+				y = pa[1] + p[1]*math.sin(math.radians(p[0]+pa[2]))
+				plots_xy.append( (x,y) )
 
+			#print(plots_xy)
 
+			# debug : print plots in range in order to compare estimated plot (x,y) with ground truth plot position (x,y)
+			plots_xy_in_range = select_plots(pa[0],pa[1],10.0+1.0)
 
+			#print(plots_xy_in_range)
 
+			weight = compute_one_particles_weight(plots_xy,plots_xy_in_range)
 
-
+			print(weight)
 
 
 
@@ -356,7 +414,7 @@ class robot_controller:
 
 		# waypoint detection and sequencing
 		distance = 1.0
-		if is_near_waypoint(position_x,position_y,waypoint_x,waypoint_y,distance):
+		if point_to_point_distance(position_x,position_y,waypoint_x,waypoint_y,distance):
 			self.current_waypoint_index+=1
 		if self.current_waypoint_index == len(wp_position):
 			self.current_waypoint_index=0
