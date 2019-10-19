@@ -13,7 +13,7 @@ def CatmullRomSpline(p0, p1, p2, p3, nPoints=100):
     """ Compute trajectories"""
     P0, P1, P2, P3 = map(np.array, [p0, p1, p2, p3])
     # Calculate t0 to t4
-    alpha = 0.8
+    alpha = 0.9
     beta = alpha
     def tj(ti, Pi, Pj):
         xi, yi = Pi
@@ -251,7 +251,7 @@ class robot_controller:
 
 
 		P2 = [position_x,position_y]
-		P1 = [position_x-2.0*math.cos(math.radians(heading)),position_y-2.0*math.sin(math.radians(heading))]
+		P1 = [position_x-3.0*math.cos(math.radians(heading)),position_y-3.0*math.sin(math.radians(heading))]
 
 		target_waypoint_pose = wp_position[self.current_waypoint_index]
 		waypoint_x = target_waypoint_pose[0]
@@ -281,7 +281,7 @@ class robot_controller:
 		self.pid_wall = self.pid_wall_following.compute(delta_angle)
 
 		steering = constraint(self.pid_wall, -1.0, 1.0)
-		print("target_heading:" + str(round(target_heading,1)) + "  current_heading:" + str(round(heading,1)) + "  steering:" + str(round((target_heading-heading),1)) )
+		#print("target_heading:" + str(round(target_heading,1)) + "  current_heading:" + str(round(heading,1)) + "  steering:" + str(round((target_heading-heading),1)) )
 
 
 		distance = 1.0
