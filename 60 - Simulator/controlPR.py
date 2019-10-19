@@ -143,7 +143,7 @@ class robot_controller:
 
 		# process LIDAR point clound to find plots
 		plots = []
-		plot_radius = 0.05 #m
+		plot_radius = 0.1 #m
 		threshold_max_distance = 9.99 #m
 		# find cluster
 		cluster_radius = 0.2 #m
@@ -187,7 +187,30 @@ class robot_controller:
 			elif not in_cluster and (distance >= threshold_max_distance):
 				in_cluster = False #nop
 
-		print(plots)
+		# plots contain (angle,distance) for each visible plot (in range 10m)
+		#print(plots)
+
+		# debug : process plot list (angle,distance) point clound to calculate (x,y) of each plot
+		plots_xy = []
+		for p in plots:
+			x = position_x + p[1]*math.cos(math.radians(p[0]+heading))
+			y = position_y + p[1]*math.sin(math.radians(p[0]+heading))
+			plots_xy.append( (x,y) )
+
+		print(plots_xy)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 		# wall following PID controller

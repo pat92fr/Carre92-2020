@@ -276,7 +276,7 @@ class Simulator(ShowBase):
 		self.lidar_distance = {}
 		for angle in range(-135,+135,1):
 			cn = CollisionNode('LidarCN'+str(angle))
-			cs = CollisionSegment((0.0,0.1,0.05),(-self.lidar_maximum_distance*math.sin(math.radians(angle)),self.lidar_maximum_distance*math.cos(math.radians(angle)),0.0)) 
+			cs = CollisionSegment((0.0,0.0,0.05),(self.lidar_maximum_distance*math.cos(math.radians(angle+90)),self.lidar_maximum_distance*math.sin(math.radians(angle+90)),0.0)) 
 			cn.addSolid(cs)
 			cn.setIntoCollideMask(BitMask32.allOff())
 			cn.setFromCollideMask(BitMask32.bit(2))
@@ -300,7 +300,7 @@ class Simulator(ShowBase):
 		####self.camera.setPos(0.0,-0.15,0.25)
 		###self.camera.setPos(0.0,-2.0,2.0)
 		#self.camera.setPos(0.0,-0.5,0.5)
-		self.camera.setPos(0.0,-2.0,2.0)
+		self.camera.setPos(0.0,-3.0,3.0)
 		#self.camera.setPos(0.0,0.05,0.22) # REFERENCE
 		self.camera.setHpr(0,-30,0)
 		self.camera.reparentTo(self.chassisNP)
