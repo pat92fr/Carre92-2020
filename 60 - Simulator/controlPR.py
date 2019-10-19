@@ -140,6 +140,56 @@ class robot_controller:
 		self.target_speed_ms = self.max_speed_from_distance(total_distance)
 		self.actual_speed_ms = 0.8*self.actual_speed_ms + 0.24*actual_speed_ms
 
+
+		# process LIDAR point clound to find plots
+		plots = []
+		plot_radius = 0.05 #m
+		threshold_max_distance = 9.99 #m
+		# find cluster
+		cluster_radius = 0.2 #m
+		current_cluster_min_distance = 0.0 #m
+		current_cluster_begin_angle = 0.0 # deg
+		current_cluster_end_angle = 0.0 # deg
+		current_cluster_median_angle = 0.0 # deg
+		in_cluster = False
+		for angle in range(-135,+135,1):
+			key ='LidarCN'+str(angle)
+			distance = lidar_distance[key]
+
+			if not in_cluster and (distance < threshold_max_distance): # new cluster detection
+				# start new cluster
+				in_cluster = True
+				current_cluster_min_distance = distance
+				current_cluster_begin_angle = angle
+				current_cluster_end_angle = angle
+
+			elif in_cluster and (distance >= threshold_max_distance): # end of current cluster
+				# regsiter current cluster
+				current_cluster_median_angle = (current_cluster_end_angle+current_cluster_begin_angle)/2.0
+				plots.append( (current_cluster_median_angle, current_cluster_min_distance+plot_radius ))
+				in_cluster = False
+
+			elif in_cluster and (distance < threshold_max_distance) and (abs(distance-current_cluster_min_distance)<=cluster_radius) : # inside current cluster, new distance
+				current_cluster_min_distance = min(distance,current_cluster_min_distance)
+				current_cluster_end_angle = angle
+
+			elif in_cluster and (distance < threshold_max_distance) and (abs(distance-current_cluster_min_distance)>cluster_radius) : # end of current cluster and new cluster detection
+				# regsiter current cluster
+				current_cluster_median_angle = (current_cluster_end_angle+current_cluster_begin_angle)/2.0
+				plots.append( (current_cluster_median_angle, current_cluster_min_distance+plot_radius ))
+				in_cluster = False
+				# start new cluster
+				in_cluster = True
+				current_cluster_min_distance = distance
+				current_cluster_begin_angle = angle
+				current_cluster_end_angle = angle
+
+			elif not in_cluster and (distance >= threshold_max_distance):
+				in_cluster = False #nop
+
+		print(plots)
+
+
 		# wall following PID controller
 		self.actual_lidar_direction_error = 0
 		# sum = 0.0
@@ -243,51 +293,48 @@ class robot_controller:
 		# print('+'  * int(self.ratio_ai*10.0))
 		# steering = constraint(steering, -1.0, 1.0)
 
-
+		# angle from -pi to -pi
 		if heading>180:
 			heading -=360 
 		if heading<-180:
 			heading +=360 
 
-
-		P2 = [position_x,position_y]
-		P1 = [position_x-3.0*math.cos(math.radians(heading)),position_y-3.0*math.sin(math.radians(heading))]
-
+		# next waypoint
 		target_waypoint_pose = wp_position[self.current_waypoint_index]
 		waypoint_x = target_waypoint_pose[0]
 		waypoint_y = target_waypoint_pose[1]
 		waypoint_heading = target_waypoint_pose[2]
+
+		# interpolation from current position to waypoint
+		P1 = [position_x-3.0*math.cos(math.radians(heading)),position_y-3.0*math.sin(math.radians(heading))]
+		P2 = [position_x,position_y]
 		P3 = [waypoint_x,waypoint_y]
 		P4 = [ wp_position[(self.current_waypoint_index+1)%len(wp_position)][0], wp_position[(self.current_waypoint_index+1)%len(wp_position)][1] ]
-
-
 		#P4 = [waypoint_x+2.0*math.cos(math.radians(waypoint_heading)),waypoint_y+2.0*math.sin(math.radians(waypoint_heading))]
-
 		C = CatmullRomSpline(P1, P2, P3, P4, 20)
 
+		# next interpolated position
 		target_x = C[1][0]
 		target_y = C[1][1]
-
 		target_heading = math.degrees(math.atan2( target_y-position_y, target_x-position_x ))
 		
+		# angle error from -pi to -pi
 		delta_angle = target_heading-heading
 		if delta_angle > 180:
 			delta_angle -=360
 		if delta_angle < -180:
 			delta_angle +=360
 
-		#steering = (delta_angle)*0.1
-
+		# PID heading
 		self.pid_wall = self.pid_wall_following.compute(delta_angle)
-
 		steering = constraint(self.pid_wall, -1.0, 1.0)
 		#print("target_heading:" + str(round(target_heading,1)) + "  current_heading:" + str(round(heading,1)) + "  steering:" + str(round((target_heading-heading),1)) )
 
 
+		# waypoint detection and sequencing
 		distance = 1.0
 		if is_near_waypoint(position_x,position_y,waypoint_x,waypoint_y,distance):
 			self.current_waypoint_index+=1
-		
 		if self.current_waypoint_index == len(wp_position):
 			self.current_waypoint_index=0
 		
