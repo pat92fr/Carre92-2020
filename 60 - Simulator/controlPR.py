@@ -4,6 +4,7 @@ from trackPR import *
 
 import numpy as np
 import math
+import random
 
 # helper : return True if the waypoint (wx,wy) is near the current position (x,y)
 def point_to_point_distance(x,y,waypoint_x,waypoint_y,distance):
@@ -13,7 +14,7 @@ def CatmullRomSpline(p0, p1, p2, p3, nPoints=100):
     """ Compute trajectories"""
     P0, P1, P2, P3 = map(np.array, [p0, p1, p2, p3])
     # Calculate t0 to t4
-    alpha = 0.9
+    alpha = 0.7 #0.7
     beta = alpha
     def tj(ti, Pi, Pj):
         xi, yi = Pi
@@ -99,14 +100,14 @@ class robot_controller:
 		# speed controller settings
 		self.min_speed_ms = 0.1 # 0.5 m/s
 		self.cornering_speed = 0.2
-		self.max_speed_ms = 6.0 # 3.5 m/s
+		self.max_speed_ms = 14.0 # 3.5 m/s
 
 		self.acceleration = 0.05 # m/s per 1/60eme
 		self.deceleration = 0.2 # m/s per 1/60eme
 
 		self.pid_speed = my_controller.pid(kp=0.3, ki=0.001, kd=0.1, integral_max=1000, output_max=1.0, alpha=0.1) 
 		self.pid_speed_kff = 0.05 # feed forward apart from speed PID
-		self.steering_k_speed = 0.2
+		self.steering_k_speed = 0.05
 
 		# speed controller state
 		self.target_speed_ms = 0.0 # m/s (square)
@@ -114,9 +115,11 @@ class robot_controller:
 		self.actual_speed_ms = 0.0 # m/s from encoder (real)
 		self.actual_speed_kmh = 0.0 # km.h from encoder
 		self.actual_speed_error_ms = 0.0 # m/s
+		self.filtered_actual_speed_ms = 0.0
+		self.actual_rotation_speed_dps = 0.0
 
 		# lidar steering controller settings
-		self.pid_wall_following = my_controller.pid(kp=0.05, ki=0.0, kd=0.1, integral_max=1000, output_max=1.0, alpha=0.2) 
+		self.pid_wall_following = my_controller.pid(kp=0.05, ki=0.0, kd=0.05, integral_max=1000, output_max=1.0, alpha=0.2) 
 		self.lidar_direction_k_speed = 0.0
 		self.lidar_maximum_distance = 2.0
 
@@ -142,13 +145,32 @@ class robot_controller:
 		# AI input
 		self.frame = np.zeros((1,90,160,1))
 
-
-
-
 		# PR
 		self.current_waypoint_index = 0
 
+		# Particles filter : creation of particles
+		# from global known start position (approx x,y,heading), create a set of initial particles around
+		self.particles_count = 20
+		self.particles = []
+		self.weights = []
+		# initial pose error
+		self.xy_error = 0.5 #m
+		self.heading_error = 20 # deg
+		# create particles
+		for index in range(self.particles_count):
+			distance = random.uniform(0.0,self.xy_error)
+			heading = start_position[2] + random.uniform(-self.heading_error,self.heading_error)
+			angle = random.uniform(0.0,360.0)
+			self.particles.append( 
+				(
 
+					start_position[0]+distance*math.cos(math.radians(angle)),
+					start_position[1]+distance*math.sin(math.radians(angle)),
+					heading 
+				)
+			)
+			self.weights.append(0.0) #reset particle weight
+		print(self.particles)
 
 	# speed strategy
 	def max_speed_from_distance(self, distance):
@@ -171,6 +193,7 @@ class robot_controller:
 		self,				
 		dt,
 		actual_speed_ms,
+		actual_rotation_speed_dps,
 		total_distance,
 		lidar_distance,
 		position_x,
@@ -184,7 +207,11 @@ class robot_controller:
 
 		# speed controller (stage 1)
 		self.target_speed_ms = self.max_speed_from_distance(total_distance)
-		self.actual_speed_ms = 0.8*self.actual_speed_ms + 0.24*actual_speed_ms
+		self.filtered_actual_speed_ms = 0.8*self.actual_speed_ms + 0.2*actual_speed_ms
+		self.actual_speed_ms = actual_speed_ms
+		self.actual_rotation_speed_dps = actual_rotation_speed_dps
+
+
 
 
 		# process LIDAR point clound to find anchors
@@ -236,20 +263,26 @@ class robot_controller:
 		# anchors contain (angle,distance) for each visible anchors (in range 10m)
 		#print(anchors)
 
-		# for each particles
-		# for each particles
-		# for each particles
+		# move particles according speeds (v,w)
+		delta_angle = self.actual_rotation_speed_dps*dt
+		delta_xy = self.actual_speed_ms*dt		
 		particles = []
-		particles.append( (position_x,position_y,heading) ) # P0
-		particles.append( (position_x+0.1*math.cos(math.radians(heading)),position_y+0.1*math.sin(math.radians(heading)),heading+1.0 ) ) # P1
-		particles.append( (position_x+0.2*math.cos(math.radians(heading+90)),position_y+0.2*math.sin(math.radians(heading+90)),heading+2.0 ) ) # P2
-		particles.append( (position_x+0.3*math.cos(math.radians(heading+180)),position_y+0.3*math.sin(math.radians(heading+180)),heading-3.0 ) ) # P3
-		particles.append( (position_x+0.4*math.cos(math.radians(heading+270)),position_y+0.4*math.sin(math.radians(heading+270)),heading-5.0 ) ) # P4
+		for pa in self.particles:
+			# little error
+			xy_error = random.uniform(-0.1*dt,0.1*dt) # 0.1m/s error +/-
+			heading_error = random.uniform(-0.1*dt,0.1*dt) # 0.1dps error +/-
+			# compute next position
+			pa_x = pa[0] + (delta_xy+xy_error)*math.cos(math.radians(pa[2] + delta_angle/2.0 + heading_error))
+			pa_y = pa[1] + (delta_xy+xy_error)*math.sin(math.radians(pa[2] + delta_angle/2.0 + heading_error))
+			pa_heading = pa[2] + delta_angle + heading_error
+			particles.append( (pa_x,pa_y,pa_heading) )
+		self.particles = particles
+		#print(self.particles)
 
 		# compute the weight of particles and normalize
 		weights = []
 		weight_sum = 0.0
-		for pa in particles:
+		for pa in self.particles:
 			# for each particle (x,y,heading), compute the anchor positions (px,py) from observation (distance,heading) and particule curent position (x,y)
 			anchors_xy = []
 			for a in anchors:
@@ -265,13 +298,24 @@ class robot_controller:
 			weight = compute_one_particles_weight(anchors_xy,anchors_xy_in_range)
 			weight_sum += weight
 			weights.append(weight)
-
 		if weight_sum>0.0:
 			weights[:] = [w / weight_sum for w in weights]
+		self.weights = weights
+		print(self.weights)
 
-		print(weights)
+		# resample partciles
 
 
+
+		# centroid
+		centroid_x = 0.0
+		centroid_y = 0.0
+		centroid_heading = 0.0
+		for pa,w in zip(self.particles,self.weights):
+			centroid_x += pa[0]*w
+			centroid_y += pa[1]*w
+			centroid_heading += pa[2]*w
+		print("x:" + str(centroid_x) +'('+str(position_x)+ "  y:" + str(centroid_y) +'('+str(position_y)+ "  h:" + str(centroid_heading) +'('+str(heading))
 
 
 
@@ -385,6 +429,7 @@ class robot_controller:
 			heading -=360 
 		if heading<-180:
 			heading +=360 
+		#print(heading)
 
 		# next waypoint
 		target_waypoint_pose = wp_position[self.current_waypoint_index]
@@ -393,12 +438,12 @@ class robot_controller:
 		waypoint_heading = target_waypoint_pose[2]
 
 		# interpolation from current position to waypoint
-		P1 = [position_x-3.0*math.cos(math.radians(heading)),position_y-3.0*math.sin(math.radians(heading))]
+		P1 = [position_x-1.0*math.cos(math.radians(heading)),position_y-1.0*math.sin(math.radians(heading))]
 		P2 = [position_x,position_y]
 		P3 = [waypoint_x,waypoint_y]
 		P4 = [ wp_position[(self.current_waypoint_index+1)%len(wp_position)][0], wp_position[(self.current_waypoint_index+1)%len(wp_position)][1] ]
 		#P4 = [waypoint_x+2.0*math.cos(math.radians(waypoint_heading)),waypoint_y+2.0*math.sin(math.radians(waypoint_heading))]
-		C = CatmullRomSpline(P1, P2, P3, P4, 20)
+		C = CatmullRomSpline(P1, P2, P3, P4, 10)
 
 		# next interpolated position
 		target_x = C[1][0]
@@ -451,7 +496,7 @@ class robot_controller:
 		###print(str(round(self.target_speed_ms,1)) + " m/s  " + str(round(self.current_speed_ms,1)) + " m/s  ")
 
 		# compute throttle according actual_speed
-		self.actual_speed_error_ms = self.current_speed_ms-self.actual_speed_ms
+		self.actual_speed_error_ms = self.current_speed_ms-self.filtered_actual_speed_ms
 		throttle = self.pid_speed.compute(self.actual_speed_error_ms) + self.pid_speed_kff *self.current_speed_ms
 		throttle = constraint(throttle, -1.0, 1.0)
 
