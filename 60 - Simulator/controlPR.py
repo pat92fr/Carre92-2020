@@ -64,7 +64,7 @@ def select_anchors(x,y,distance):
 # x=0 ==> y=1
 # x=a ==> y=0
 # x>a ==> y=0
-def cost_function_primitive(x,a=0.5):
+def cost_function_primitive(x,a=0.2):
 	return max(0.0,1.0-x/a)
 # this primitive is used in order to update the waight of particles.
 # the range around an anchor is 50cm
@@ -102,7 +102,7 @@ class robot_controller:
 		# speed controller settings
 		self.min_speed_ms = 0.1 # 0.5 m/s
 		self.cornering_speed = 0.2
-		self.max_speed_ms = 3.5 # 3.5 m/s
+		self.max_speed_ms = 2.0 # 3.5 m/s
 
 		self.acceleration = 0.05 # m/s per 1/60eme
 		self.deceleration = 0.2 # m/s per 1/60eme
@@ -153,12 +153,12 @@ class robot_controller:
 
 		# Particles filter : creation of particles
 		# from global known start position (approx x,y,heading), create a set of initial particles around
-		self.particles_count = 10
+		self.particles_count = 100
 		self.particles = []
 		self.weights = []
 		# initial pose error
-		self.xy_error = 0.5 #m
-		self.heading_error = 15 # deg
+		self.xy_error = 0.0 #m
+		self.heading_error = 0.0 # deg
 		# create particles
 		for index in range(self.particles_count):
 			distance = random.uniform(0.0,self.xy_error)
@@ -271,7 +271,7 @@ class robot_controller:
 				in_cluster = False #nop
 
 		# anchors contain (angle,distance) for each visible anchors (in range 10m)
-		#print(anchors)
+		print(anchors)
 
 		# odometry
 		self.odom.update(self.actual_speed_ms,self.actual_rotation_speed_dps,dt)
@@ -279,22 +279,27 @@ class robot_controller:
 		self.odom.print()
 
 		# move particles according speeds (v,w)
-		delta_angle = self.actual_rotation_speed_dps*dt
-		delta_xy = self.actual_speed_ms*dt
+		delta_h = self.actual_rotation_speed_dps*dt
+		delta_xy = (self.last_actual_speed_ms+self.actual_speed_ms)*dt/2.0
 		particles = []
 		for pa in self.particles:
 			# little error
-			xy_error = random.uniform(-0.1*dt,0.1*dt) # 0.1m/s error +/-
-			heading_error = random.uniform(-0.1*dt,0.1*dt) # 0.1dps error +/-
+			xy_error = random.uniform(-1.2*dt,1.2*dt) # 0.1m/s error +/-
+			xy_heading_error = random.uniform(-1.5*dt,1.5*dt) # 0.1dps error +/-
+			heading_error = random.uniform(-0.01*dt,0.01*dt) # 0.1dps error +/-
 			# compute next position
-			pa_x = pa[0] + (delta_xy+xy_error)*math.cos(math.radians(pa[2] + delta_angle/2.0 + heading_error))
-			pa_y = pa[1] + (delta_xy+xy_error)*math.sin(math.radians(pa[2] + delta_angle/2.0 + heading_error))
-			pa_heading = pa[2] + delta_angle + heading_error
+			pa_x = pa[0] + (delta_xy+xy_error)*math.cos(math.radians(pa[2] + delta_h/2.0 + xy_heading_error))
+			pa_y = pa[1] + (delta_xy+xy_error)*math.sin(math.radians(pa[2] + delta_h/2.0 + xy_heading_error))
+			pa_heading = pa[2] + delta_h + heading_error
 			particles.append( (pa_x,pa_y,pa_heading) )
 		self.particles = particles
 		#print(self.particles)
 
 		# compute the weight of particles and normalize
+
+		# TODO : prendre en compte le nombre de plots observés car il ne faut pas diviser par le nombre de plots total sous peine de pénaliser certaines particules.
+		# TODO à degub finement !
+
 		weights = []
 		weight_sum = 0.0
 		for pa in self.particles:
@@ -320,12 +325,12 @@ class robot_controller:
 
 
 		# resample partciles
-		if weight_sum==1.0:
+		if weight_sum>0.0:
 			new_particle_list_index = np.random.choice(
 				len(self.particles), 
 				self.particles_count, 
 				p=self.weights)
-			#print(new_particle_list_index)
+			#print("resampling:" + str(new_particle_list_index) )
 			# then copy heavy particles
 			resampling_particles = []
 			for i in new_particle_list_index:
@@ -342,7 +347,7 @@ class robot_controller:
 			centroid_y += pa[1]*w
 			centroid_heading += pa[2]*w
 		# compare with ground truth
-		#print("centroid x:" + str(centroid_x) +'('+str(position_x)+ "  y:" + str(centroid_y) +'('+str(position_y)+ "  h:" + str(centroid_heading) +'('+str(heading))
+		print("centroid x:" + str(round(centroid_x,2)) + "  y:" + str(round(centroid_y,2)) + "  h:" + str(round(centroid_heading,2)) )
 
 
 		# wall following PID controller
