@@ -64,7 +64,7 @@ def select_anchors(x,y,distance):
 # x=0 ==> y=1
 # x=a ==> y=0
 # x>a ==> y=0
-def cost_function_primitive(x,a=0.2):
+def cost_function_primitive(x,a=0.1):
 	return max(0.0,1.0-x/a)
 # this primitive is used in order to update the waight of particles.
 # the range around an anchor is 50cm
@@ -153,7 +153,7 @@ class robot_controller:
 
 		# Particles filter : creation of particles
 		# from global known start position (approx x,y,heading), create a set of initial particles around
-		self.particles_count = 100
+		self.particles_count = 300
 		self.particles = []
 		self.weights = []
 		# initial pose error
@@ -177,6 +177,9 @@ class robot_controller:
 
 		# odometry
 		self.odom = my_odometry.odometry( start_position[0], start_position[1], start_position[2])
+
+		# log
+		self.data_logger = open("log.txt","w")
 
 	# speed strategy
 	def max_speed_from_distance(self, distance):
@@ -284,8 +287,8 @@ class robot_controller:
 		particles = []
 		for pa in self.particles:
 			# little error
-			xy_error = random.uniform(-1.2*dt,1.2*dt) # 0.1m/s error +/-
-			xy_heading_error = random.uniform(-1.5*dt,1.5*dt) # 0.1dps error +/-
+			xy_error = random.uniform(-3.0*dt,3.0*dt) # 0.1m/s error +/-
+			xy_heading_error = random.uniform(-3.0*dt,3.0*dt) # 0.1dps error +/-
 			heading_error = random.uniform(-0.01*dt,0.01*dt) # 0.1dps error +/-
 			# compute next position
 			pa_x = pa[0] + (delta_xy+xy_error)*math.cos(math.radians(pa[2] + delta_h/2.0 + xy_heading_error))
@@ -341,14 +344,33 @@ class robot_controller:
 		# centroid
 		centroid_x = 0.0
 		centroid_y = 0.0
-		centroid_heading = 0.0
+		centroid_h = 0.0
 		for pa,w in zip(self.particles,self.weights):
-			centroid_x += pa[0]*w
-			centroid_y += pa[1]*w
-			centroid_heading += pa[2]*w
-		# compare with ground truth
-		print("centroid x:" + str(round(centroid_x,2)) + "  y:" + str(round(centroid_y,2)) + "  h:" + str(round(centroid_heading,2)) )
+			centroid_x += pa[0] #*w
+			centroid_y += pa[1] #*w
+			centroid_h += pa[2] #*w
+		centroid_x /= self.particles_count
+		centroid_y /= self.particles_count
+		centroid_h /= self.particles_count
 
+		# compare with ground truth
+		print("centroid x:" + str(round(centroid_x,2)) + "  y:" + str(round(centroid_y,2)) + "  h:" + str(round(centroid_h,2)) )
+
+		self.data_logger.write(
+
+				str(round(position_x,2)) + ";" +
+				str(round(position_y,2)) + ";" +
+				str(round(heading,2)) + ";" +
+
+				str(round(self.odom.x,2)) + ";" +
+				str(round(self.odom.y,2)) + ";" +
+				str(round(self.odom.h,2)) + ";" +
+
+
+				str(round(centroid_x,2)) + ";" +
+				str(round(centroid_y,2)) + ";" +
+				str(round(centroid_h,2)) + "\n"
+			)
 
 		# wall following PID controller
 		self.actual_lidar_direction_error = 0
