@@ -355,7 +355,7 @@ class Simulator(ShowBase):
 		wheel.setSuspensionStiffness(80.0)
 		wheel.setWheelsDampingRelaxation(0.8)
 		wheel.setWheelsDampingCompression(0.6) 
-		wheel.setFrictionSlip(10.0);
+		wheel.setFrictionSlip(40.0);
 		wheel.setRollInfluence(0.1)
 
 	def slider_max_speed_change(self):
@@ -546,7 +546,7 @@ class Simulator(ShowBase):
 			self.steering = constraint(self.steering, -self.steering_clamp, self.steering_clamp)
 
 		#print(self.throttle)
-		max_engine_force = 30.0
+		max_engine_force = 50.0
 		max_brake_force = 10.0
 		if self.throttle >= 0.0:
 			self.engineForce = self.throttle*max_engine_force

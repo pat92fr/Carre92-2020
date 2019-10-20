@@ -1,4 +1,6 @@
 import my_controller
+import my_odometry
+
 from my_math import *
 from trackPR import *
 
@@ -100,7 +102,7 @@ class robot_controller:
 		# speed controller settings
 		self.min_speed_ms = 0.1 # 0.5 m/s
 		self.cornering_speed = 0.2
-		self.max_speed_ms = 14.0 # 3.5 m/s
+		self.max_speed_ms = 3.5 # 3.5 m/s
 
 		self.acceleration = 0.05 # m/s per 1/60eme
 		self.deceleration = 0.2 # m/s per 1/60eme
@@ -174,9 +176,7 @@ class robot_controller:
 		print(self.particles)
 
 		# odometry
-		self.odom_x = start_position[0]
-		self.odom_y = start_position[1]
-		self.odom_h = start_position[2]
+		self.odom = my_odometry.odometry( start_position[0], start_position[1], start_position[2])
 
 	# speed strategy
 	def max_speed_from_distance(self, distance):
@@ -209,16 +209,20 @@ class robot_controller:
 
 		print("----")
 
-		# controlled state
+		# reset controller state
 		steering = 0.0
 		throttle = 0.0
 
-		# speed controller (stage 1)
+		# update controller state
 		self.last_actual_speed_ms = self.actual_speed_ms
 		self.actual_speed_ms = actual_speed_ms
 		self.actual_rotation_speed_dps = actual_rotation_speed_dps
-		self.filtered_actual_speed_ms = 0.8*self.filtered_actual_speed_ms + 0.2*actual_speed_ms
+		#print(self.actual_speed_ms)
+		#print(self.actual_rotation_speed_dps)
+		
+		# speed controller (stage 1)
 		self.target_speed_ms = self.max_speed_from_distance(total_distance)
+		self.filtered_actual_speed_ms = 0.8*self.filtered_actual_speed_ms + 0.2*actual_speed_ms
 
 		# process LIDAR point clound to find anchors
 		anchors = []
@@ -270,14 +274,9 @@ class robot_controller:
 		#print(anchors)
 
 		# odometry
-		delta_angle = self.actual_rotation_speed_dps*dt
-		delta_xy = (self.last_actual_speed_ms+self.actual_speed_ms)*dt/2.0	
-		self.odom_x = self.odom_x + delta_xy*math.cos(math.radians(self.odom_h + delta_angle/2.0))
-		self.odom_y = self.odom_y + delta_xy*math.sin(math.radians(self.odom_h + delta_angle/2.0))
-		self.odom_h = self.odom_h + delta_angle
-		print(self.actual_speed_ms)
-		print(self.actual_rotation_speed_dps)
-		print("odom x:" + str(self.odom_x) +'('+str(position_x)+ "  y:" + str(self.odom_y) +'('+str(position_y)+ "  h:" + str(self.odom_h) +'('+str(heading))
+		self.odom.update(self.actual_speed_ms,self.actual_rotation_speed_dps,dt)
+		print("ground_truth is x:" + str(round(position_x,2)) + "m   y:" + str(round(position_y,2)) + "m   h:" + str(round(heading,2)) +"deg" )
+		self.odom.print()
 
 		# move particles according speeds (v,w)
 		delta_angle = self.actual_rotation_speed_dps*dt
