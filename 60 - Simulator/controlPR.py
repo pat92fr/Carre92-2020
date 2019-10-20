@@ -150,12 +150,12 @@ class robot_controller:
 
 		# Particles filter : creation of particles
 		# from global known start position (approx x,y,heading), create a set of initial particles around
-		self.particles_count = 20
+		self.particles_count = 50
 		self.particles = []
 		self.weights = []
 		# initial pose error
 		self.xy_error = 0.5 #m
-		self.heading_error = 20 # deg
+		self.heading_error = 15 # deg
 		# create particles
 		for index in range(self.particles_count):
 			distance = random.uniform(0.0,self.xy_error)
@@ -200,6 +200,8 @@ class robot_controller:
 		position_y,
 		heading
 		 ):
+
+		print("----")
 
 		# controlled state
 		steering = 0.0
@@ -261,7 +263,7 @@ class robot_controller:
 				in_cluster = False #nop
 
 		# anchors contain (angle,distance) for each visible anchors (in range 10m)
-		#print(anchors)
+		print(anchors)
 
 		# move particles according speeds (v,w)
 		delta_angle = self.actual_rotation_speed_dps*dt
@@ -303,9 +305,20 @@ class robot_controller:
 		self.weights = weights
 		print(self.weights)
 
+
 		# resample partciles
-
-
+		if weight_sum==1.0:
+			new_particle_list_index = np.random.choice(
+				len(self.particles), 
+				self.particles_count, 
+				p=self.weights)
+			print(new_particle_list_index)
+			# then copy heavy particles
+			resampling_particles = []
+			for i in new_particle_list_index:
+				resampling_particles.append( self.particles[i] )
+			self.particles = resampling_particles
+			print(self.particles)
 
 		# centroid
 		centroid_x = 0.0
@@ -315,10 +328,8 @@ class robot_controller:
 			centroid_x += pa[0]*w
 			centroid_y += pa[1]*w
 			centroid_heading += pa[2]*w
+		# compare with ground truth
 		print("x:" + str(centroid_x) +'('+str(position_x)+ "  y:" + str(centroid_y) +'('+str(position_y)+ "  h:" + str(centroid_heading) +'('+str(heading))
-
-
-
 
 
 		# wall following PID controller
