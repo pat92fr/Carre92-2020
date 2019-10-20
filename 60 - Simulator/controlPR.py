@@ -117,6 +117,7 @@ class robot_controller:
 		self.actual_speed_error_ms = 0.0 # m/s
 		self.filtered_actual_speed_ms = 0.0
 		self.actual_rotation_speed_dps = 0.0
+		self.last_actual_speed_ms = 0.0
 
 		# lidar steering controller settings
 		self.pid_wall_following = my_controller.pid(kp=0.05, ki=0.0, kd=0.05, integral_max=1000, output_max=1.0, alpha=0.2) 
@@ -150,7 +151,7 @@ class robot_controller:
 
 		# Particles filter : creation of particles
 		# from global known start position (approx x,y,heading), create a set of initial particles around
-		self.particles_count = 50
+		self.particles_count = 10
 		self.particles = []
 		self.weights = []
 		# initial pose error
@@ -171,6 +172,11 @@ class robot_controller:
 			)
 			self.weights.append(0.0) #reset particle weight
 		print(self.particles)
+
+		# odometry
+		self.odom_x = start_position[0]
+		self.odom_y = start_position[1]
+		self.odom_h = start_position[2]
 
 	# speed strategy
 	def max_speed_from_distance(self, distance):
@@ -208,13 +214,11 @@ class robot_controller:
 		throttle = 0.0
 
 		# speed controller (stage 1)
-		self.target_speed_ms = self.max_speed_from_distance(total_distance)
-		self.filtered_actual_speed_ms = 0.8*self.actual_speed_ms + 0.2*actual_speed_ms
+		self.last_actual_speed_ms = self.actual_speed_ms
 		self.actual_speed_ms = actual_speed_ms
 		self.actual_rotation_speed_dps = actual_rotation_speed_dps
-
-
-
+		self.filtered_actual_speed_ms = 0.8*self.filtered_actual_speed_ms + 0.2*actual_speed_ms
+		self.target_speed_ms = self.max_speed_from_distance(total_distance)
 
 		# process LIDAR point clound to find anchors
 		anchors = []
@@ -263,11 +267,21 @@ class robot_controller:
 				in_cluster = False #nop
 
 		# anchors contain (angle,distance) for each visible anchors (in range 10m)
-		print(anchors)
+		#print(anchors)
+
+		# odometry
+		delta_angle = self.actual_rotation_speed_dps*dt
+		delta_xy = (self.last_actual_speed_ms+self.actual_speed_ms)*dt/2.0	
+		self.odom_x = self.odom_x + delta_xy*math.cos(math.radians(self.odom_h + delta_angle/2.0))
+		self.odom_y = self.odom_y + delta_xy*math.sin(math.radians(self.odom_h + delta_angle/2.0))
+		self.odom_h = self.odom_h + delta_angle
+		print(self.actual_speed_ms)
+		print(self.actual_rotation_speed_dps)
+		print("odom x:" + str(self.odom_x) +'('+str(position_x)+ "  y:" + str(self.odom_y) +'('+str(position_y)+ "  h:" + str(self.odom_h) +'('+str(heading))
 
 		# move particles according speeds (v,w)
 		delta_angle = self.actual_rotation_speed_dps*dt
-		delta_xy = self.actual_speed_ms*dt		
+		delta_xy = self.actual_speed_ms*dt
 		particles = []
 		for pa in self.particles:
 			# little error
@@ -303,7 +317,7 @@ class robot_controller:
 		if weight_sum>0.0:
 			weights[:] = [w / weight_sum for w in weights]
 		self.weights = weights
-		print(self.weights)
+		#print(self.weights)
 
 
 		# resample partciles
@@ -312,13 +326,13 @@ class robot_controller:
 				len(self.particles), 
 				self.particles_count, 
 				p=self.weights)
-			print(new_particle_list_index)
+			#print(new_particle_list_index)
 			# then copy heavy particles
 			resampling_particles = []
 			for i in new_particle_list_index:
 				resampling_particles.append( self.particles[i] )
 			self.particles = resampling_particles
-			print(self.particles)
+			#print(self.particles)
 
 		# centroid
 		centroid_x = 0.0
@@ -329,7 +343,7 @@ class robot_controller:
 			centroid_y += pa[1]*w
 			centroid_heading += pa[2]*w
 		# compare with ground truth
-		print("x:" + str(centroid_x) +'('+str(position_x)+ "  y:" + str(centroid_y) +'('+str(position_y)+ "  h:" + str(centroid_heading) +'('+str(heading))
+		#print("centroid x:" + str(centroid_x) +'('+str(position_x)+ "  y:" + str(centroid_y) +'('+str(position_y)+ "  h:" + str(centroid_heading) +'('+str(heading))
 
 
 		# wall following PID controller

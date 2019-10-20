@@ -454,12 +454,15 @@ class Simulator(ShowBase):
 		# actual speed computation
 		self.last_position = self.current_position
 		self.current_position = self.chassisNP.getPos()
-		self.delta_distance = (self.current_position-self.last_position).length()
+		self.delta_distance = math.sqrt( 
+			(self.current_position.getX()-self.last_position.getX())*(self.current_position.getX()-self.last_position.getX()) + 
+			(self.current_position.getY()-self.last_position.getY())*(self.current_position.getY()-self.last_position.getY())
+			)
 		self.total_distance += self.delta_distance
 		self.lap_distance += self.delta_distance
-		if  dt != 0:
-			self.actual_speed_ms = self.actual_speed_ms * 0.5 + 0.5 * (self.delta_distance/dt)
-		self.actual_speed_kmh = self.actual_speed_kmh * 0.8 + 0.2 * self.actual_speed_ms*60*60/1000
+		#if  dt != 0:
+		self.actual_speed_ms = self.delta_distance/dt
+		self.actual_speed_kmh = self.actual_speed_kmh * 0.9 + 0.1 * self.actual_speed_ms*60*60/1000
 		self.speed_o_meter.setText(str(int(self.actual_speed_kmh))+ "km/h")
 		self.lap_distance_text.setText(str(int(self.lap_distance))+ "m")
 
@@ -467,8 +470,7 @@ class Simulator(ShowBase):
 		self.last_heading = self.heading
 		self.heading = self.chassisNP.getH()+90.0
 		self.delta_heading = self.heading - self.last_heading
-		if  dt != 0:
-			self.actual_rotation_speed_dps = self.actual_rotation_speed_dps * 0.5 + 0.5 * (self.delta_heading/dt)		
+		self.actual_rotation_speed_dps = self.delta_heading/dt
 		self.heading_text.setText('(' + str(round(self.current_position.getX(),1)) +',' + str(round(self.current_position.getY(),1)) +')   ' + str(int(self.heading))+ "deg")
 
 		# reset control state
