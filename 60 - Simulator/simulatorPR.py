@@ -20,6 +20,7 @@ media_dir = 'mediaPR'
 
 from my_math import *
 import controlPR
+import odometryPR
 from trackPR import *
 
 import numpy as np
@@ -115,12 +116,13 @@ def genLabelText(text, i):
 
 class Simulator(ShowBase):
 
-	def __init__(self, rc):
+	def __init__(self, rc, odom):
 
 		ShowBase.__init__(self)
 
 		# external robot controller
 		self.robot_controller = rc
+		self.robot_odometry = odom
 
         # Window
 		winprops = WindowProperties()
@@ -473,6 +475,18 @@ class Simulator(ShowBase):
 		self.actual_rotation_speed_dps = self.delta_heading/dt
 		self.heading_text.setText('(' + str(round(self.current_position.getX(),1)) +',' + str(round(self.current_position.getY(),1)) +')   ' + str(int(self.heading))+ "deg")
 
+		# odometry
+		self.robot_odometry.process(
+			dt,
+			self.actual_speed_ms,
+			self.actual_rotation_speed_dps,
+			self.total_distance,
+			self.lidar_distance,
+			self.current_position.getX(),
+			self.current_position.getY(),
+			self.heading
+		)
+
 		# reset control state
 		self.engineForce = 0.0
 		self.brakeForce = 0.0
@@ -713,9 +727,12 @@ print("Init external robot controller...")
 rc = controlPR.robot_controller(); 
 print("Done!")
 
+print("Init external robot odometry...")
+odom = odometryPR.robot_odometry(); 
+print("Done!")
 
 print("Init sim engine...")
-app = Simulator(rc)
+app = Simulator(rc,odom)
 print("Done!")
 
 # game loop
