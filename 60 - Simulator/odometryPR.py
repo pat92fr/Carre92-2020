@@ -221,7 +221,16 @@ class robot_odometry:
 			(  2.0,   2.0), 
 			( -2.0,   2.0), 
 			(  2.0,  -2.0), 
-			(  2.0,  -2.0), 					
+			(  2.0,  -2.0), 
+
+			(  3.0,   0.0), # front
+			( -3.0,   0.0), # back
+			(  0.0,   3.0), # left
+			(  0.0,  -3.0), # right
+			(  3.0,   3.0), 
+			( -3.0,   3.0), 
+			(  3.0,  -3.0), 
+			(  3.0,  -3.0), 								
 		]
 		scale_particle_position = 0.15 #m
 		# compute (x,y) of each particle
