@@ -497,6 +497,8 @@ class Simulator(ShowBase):
 			self.virtualanchorNodePath[virtual_anchor_index].setPos(px,py,0.0)
 			virtual_anchor_index += 1
 
+		# display virtual odometry
+		self.virtualodometryNodePath.setPos(self.robot_odometry.odom.x,self.robot_odometry.odom.y,0.0)
 
 		# reset control state
 		self.engineForce = 0.0
@@ -657,6 +659,13 @@ class Simulator(ShowBase):
 			onp.reparentTo(self.render)
 			self.virtualanchorNodePath.append(onp)
 
+		# load virtual robot odometry
+		self.virtualodometryNodePath = self.loader.loadModel(panda_root_dir + media_dir + '/' + 'vplot.bam')
+		self.virtualodometryNodePath.setScale(2.0, 2.0, 2.0)
+		self.virtualodometryNodePath.setHpr(0.0, 90.0, 0.0)
+		self.virtualodometryNodePath.setPos(100.0,100.0,100.0)
+		self.virtualodometryNodePath.reparentTo(self.render)
+
 		# load wp
 		self.waypointNodePath = []
 		for op in wp_position :
@@ -732,8 +741,8 @@ class Simulator(ShowBase):
 
 print("Init telemetry server...")
 #tserver = telemetry_server("192.168.1.34", 7001)
-#tserver = telemetry_server("192.168.43.5", 7001)
-tserver = telemetry_server("192.168.1.11", 7001)
+tserver = telemetry_server("192.168.43.5", 7001)
+#tserver = telemetry_server("192.168.1.11", 7001)
 print("Done!")
 
 print("Create dataset file...")
