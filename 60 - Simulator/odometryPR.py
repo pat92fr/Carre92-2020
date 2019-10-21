@@ -121,28 +121,24 @@ class robot_odometry:
 		self.anchors_xy = []
 
 		# Particles filter : creation of particles
-		# from global known start position (approx x,y,heading), create a set of initial particles around
 		self.particles_count = 100
 		self.particles = []
 		self.weights = []
-		# # initial pose error
-		# self.xy_error = 0.0 #m
-		# self.heading_error = 0.0 # deg
-		# # create particles
-		# for index in range(self.particles_count):
-		# 	distance = random.uniform(0.0,self.xy_error)
-		# 	heading = start_position[2] + random.uniform(-self.heading_error,self.heading_error)
-		# 	angle = random.uniform(0.0,360.0)
-		# 	self.particles.append( 
-		# 		(
+		# fix relative position of paricles around (x,y,h) given by odometry
+		self.relative_particle_position = []
+		for xi in range(-10,+10,1):
+			for yi in range(-10,+10,1):
+				self.relative_particle_position.append( (xi,yi) ) 
+		# self.relative_particle_position.append( (0.0,0.0) )
+		# for angle in range(0,360,20):
+		# 	for distance in range(1,10,1):
+		# 		self.relative_particle_position.append( (0.1*float(distance)*math.cos(math.radians(angle)),0.1*float(distance)*math.sin(math.radians(angle)) ) ) 
 
-		# 			start_position[0]+distance*math.cos(math.radians(angle)),
-		# 			start_position[1]+distance*math.sin(math.radians(angle)),
-		# 			heading 
-		# 		)
-		# 	)
-		# 	self.weights.append(0.0) #reset particle weight
-		# #print(self.particles)
+
+		self.scale_particle_position = 0.15 #m
+		self.centroid_x = 0.0
+		self.centroid_y = 0.0
+		self.centroid_h = 0.0
 
 		# odometry
 		self.odom = my_odometry.odometry( start_position[0], start_position[1], start_position[2])
@@ -180,64 +176,16 @@ class robot_odometry:
 		print("ground_truth is x:" + str(round(position_x,2)) + "m   y:" + str(round(position_y,2)) + "m   h:" + str(round(heading,2)) +"deg" )
 		self.odom.print()
 
-		# move particles according speeds (v,w)
-		# delta_h = self.actual_rotation_speed_dps*dt
-		# delta_xy = (self.last_actual_speed_ms+self.actual_speed_ms)*dt/2.0
-		# particles = []
-		# for pa in self.particles:
-		# 	# little error
-		# 	xy_error = random.uniform(-3.0*dt,3.0*dt) # 0.1m/s error +/-
-		# 	xy_heading_error = random.uniform(-3.0*dt,3.0*dt) # 0.1dps error +/-
-		# 	heading_error = random.uniform(-0.01*dt,0.01*dt) # 0.1dps error +/-
-		# 	# compute next position
-		# 	pa_x = pa[0] + (delta_xy+xy_error)*math.cos(math.radians(pa[2] + delta_h/2.0 + xy_heading_error))
-		# 	pa_y = pa[1] + (delta_xy+xy_error)*math.sin(math.radians(pa[2] + delta_h/2.0 + xy_heading_error))
-		# 	pa_heading = pa[2] + delta_h + heading_error
-		# 	particles.append( (pa_x,pa_y,pa_heading) )
-		# self.particles = particles
-		# #print(self.particles)
-
 		# spread particles around the pose given by the last odometry update (v,w)t X (x,y,h)t-1 => (x,y,h)t
 		# arrange particles in a grid
 		# first save cos and sin of heading
 		hcos = math.cos(math.radians(self.odom.h))
 		hsin = math.sin(math.radians(self.odom.h))
-		# fix relative position of paricles
-		relative_particle_position = [
-			(  0.0,   0.0),
-			(  1.0,   0.0), # front
-			( -1.0,   0.0), # back
-			(  0.0,   1.0), # left
-			(  0.0,  -1.0), # right
-			(  1.0,   1.0), 
-			( -1.0,   1.0), 
-			(  1.0,  -1.0), 
-			(  1.0,  -1.0), 
-
-			(  2.0,   0.0), # front
-			( -2.0,   0.0), # back
-			(  0.0,   2.0), # left
-			(  0.0,  -2.0), # right
-			(  2.0,   2.0), 
-			( -2.0,   2.0), 
-			(  2.0,  -2.0), 
-			(  2.0,  -2.0), 
-
-			(  3.0,   0.0), # front
-			( -3.0,   0.0), # back
-			(  0.0,   3.0), # left
-			(  0.0,  -3.0), # right
-			(  3.0,   3.0), 
-			( -3.0,   3.0), 
-			(  3.0,  -3.0), 
-			(  3.0,  -3.0), 								
-		]
-		scale_particle_position = 0.15 #m
 		# compute (x,y) of each particle
 		self.particles.clear()
-		for rpp in relative_particle_position:
-			pax = self.odom.x + scale_particle_position*( hcos*rpp[0] - hsin*rpp[1] )
-			pay = self.odom.y + scale_particle_position*( hsin*rpp[0] + hcos*rpp[1] ) 
+		for rpp in self.relative_particle_position:
+			pax = self.odom.x + self.scale_particle_position*( hcos*rpp[0] - hsin*rpp[1] )
+			pay = self.odom.y + self.scale_particle_position*( hsin*rpp[0] + hcos*rpp[1] ) 
 			pah = self.odom.h
 			self.particles.append( (pax,pay,pah) )
 		#print(self.particles)
@@ -247,6 +195,9 @@ class robot_odometry:
 		# TODO : prendre en compte le nombre de plots observés car il ne faut pas diviser par le nombre de plots total sous peine de pénaliser certaines particules.
 		# TODO à degub finement !
 
+		# TODO module le champ de particule 'nombre' et 'écartement' en fonction du poids précédent. Réduire le nombre de particules et serrer sur le centroide/odom lorsque l'estimation est bonne.
+		#tODO : voire faire deux groupes de particules (un au niveau de ODOM) et un autre centré sur le dernier centroide pour tracker les dévidations
+		
 		weights = []
 		weight_sum = 0.0
 		for pa in self.particles:
@@ -268,43 +219,32 @@ class robot_odometry:
 		if weight_sum>0.0:
 			weights[:] = [w / weight_sum for w in weights]
 		self.weights = weights
-		print(self.weights)
-
-
-		# # resample partciles
-		# if weight_sum>0.0:
-		# 	new_particle_list_index = np.random.choice(
-		# 		len(self.particles), 
-		# 		self.particles_count, 
-		# 		p=self.weights)
-		# 	#print("resampling:" + str(new_particle_list_index) )
-		# 	# then copy heavy particles
-		# 	resampling_particles = []
-		# 	for i in new_particle_list_index:
-		# 		resampling_particles.append( self.particles[i] )
-		# 	self.particles = resampling_particles
-		# 	#print(self.particles)
+		#print(self.weights)
 
 		# centroid
-		centroid_x = 0.0
-		centroid_y = 0.0
-		centroid_h = 0.0
-		for pa,w in zip(self.particles,self.weights):
-			centroid_x += pa[0]*w
-			centroid_y += pa[1]*w
-			centroid_h += pa[2]*w
-		#centroid_x /= len(self.particles)
-		#centroid_y /= len(self.particles)
-		#centroid_h /= len(self.particles)
-		# compare with ground truth
-		print("centroid x:" + str(round(centroid_x,2)) + "  y:" + str(round(centroid_y,2)) + "  h:" + str(round(centroid_h,2)) )
-
-		alpha = 0.1
-		beta = 1.0-alpha
 		if weight_sum>0.0:
-			self.odom.x = self.odom.x*beta + centroid_x*alpha
-			self.odom.y = self.odom.y*beta + centroid_y*alpha
+			self.centroid_x = 0.0
+			self.centroid_y = 0.0
+			self.centroid_h = 0.0
+			for pa,w in zip(self.particles,self.weights):
+				self.centroid_x += pa[0]*w
+				self.centroid_y += pa[1]*w
+				self.centroid_h += pa[2]*w
+			#centroid_x /= len(self.particles)
+			#centroid_y /= len(self.particles)
+			#centroid_h /= len(self.particles)
+			# compare with ground truth
+			print("centroid x:" + str(round(self.centroid_x,2)) + "  y:" + str(round(self.centroid_y,2)) + "  h:" + str(round(self.centroid_h,2)) )
 
+			# update odometr according centroid using filter 
+			alpha = 0.1
+			beta = 1.0-alpha
+			self.odom.x = self.odom.x*beta + self.centroid_x*alpha
+			self.odom.y = self.odom.y*beta + self.centroid_y*alpha
+		else:
+			self.centroid_x = self.odom.x
+			self.centroid_y = self.odom.y
+			self.centroid_h = self.odom.h
 
 		self.data_logger.write(
 
@@ -317,7 +257,7 @@ class robot_odometry:
 				str(round(self.odom.h,2)) + ";" +
 
 
-				str(round(centroid_x,2)) + ";" +
-				str(round(centroid_y,2)) + ";" +
-				str(round(centroid_h,2)) + "\n"
+				str(round(self.centroid_x,2)) + ";" +
+				str(round(self.centroid_y,2)) + ";" +
+				str(round(self.centroid_h,2)) + "\n"
 			)

@@ -573,7 +573,7 @@ class Simulator(ShowBase):
 			self.steering = constraint(self.steering, -self.steering_clamp, self.steering_clamp)
 
 		#print(self.throttle)
-		max_engine_force = 40.0
+		max_engine_force = 50.0
 		max_brake_force = 10.0
 		if self.throttle >= 0.0:
 			self.engineForce = self.throttle*max_engine_force
