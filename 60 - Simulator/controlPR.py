@@ -137,7 +137,7 @@ class robot_controller:
 		heading
 		 ):
 
-		print("----")
+		#print("----")
 
 		# reset controller state
 		steering = 0.0

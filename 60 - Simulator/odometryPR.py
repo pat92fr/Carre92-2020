@@ -93,7 +93,6 @@ def compute_one_plot_weight(x,y,anchors_xy_in_range):
 		weight += cost_function_primitive(math.sqrt( (x-p[0])*(x-p[0]) + (y-p[1])*(y-p[1]) ))
 	return weight
 
-
 # helper : compute one particle weight, based on the list of estimated anchor position and the list of anchors in range
 # compute the average weight using the cost function primitive
 def compute_one_particles_weight(anchors_xy,anchors_xy_in_range):
@@ -103,7 +102,7 @@ def compute_one_particles_weight(anchors_xy,anchors_xy_in_range):
 				average_weight += compute_one_plot_weight(p[0],p[1],anchors_xy_in_range)
 			average_weight /= len(anchors_xy)		
 		return average_weight
-
+#TODO vectorise
 
 
 
@@ -126,8 +125,8 @@ class robot_odometry:
 		self.weights = []
 		# fix relative position of paricles around (x,y,h) given by odometry
 		self.relative_particle_position = []
-		for xi in range(-10,+10,1):
-			for yi in range(-10,+10,1):
+		for xi in range(-9,+9,1):
+			for yi in range(-9,+9,1):
 				self.relative_particle_position.append( (xi,yi) ) 
 		# self.relative_particle_position.append( (0.0,0.0) )
 		# for angle in range(0,360,20):
@@ -173,8 +172,8 @@ class robot_odometry:
 
 		# odometry update (v,w)t X (x,y,h)t-1 => (x,y,h)t
 		self.odom.update(self.actual_speed_ms,self.actual_rotation_speed_dps,dt)
-		print("ground_truth is x:" + str(round(position_x,2)) + "m   y:" + str(round(position_y,2)) + "m   h:" + str(round(heading,2)) +"deg" )
-		self.odom.print()
+		#print("ground_truth is x:" + str(round(position_x,2)) + "m   y:" + str(round(position_y,2)) + "m   h:" + str(round(heading,2)) +"deg" )
+		#self.odom.print()
 
 		# spread particles around the pose given by the last odometry update (v,w)t X (x,y,h)t-1 => (x,y,h)t
 		# arrange particles in a grid
@@ -197,6 +196,10 @@ class robot_odometry:
 
 		# TODO module le champ de particule 'nombre' et 'écartement' en fonction du poids précédent. Réduire le nombre de particules et serrer sur le centroide/odom lorsque l'estimation est bonne.
 		#tODO : voire faire deux groupes de particules (un au niveau de ODOM) et un autre centré sur le dernier centroide pour tracker les dévidations
+
+		# list the plot plots in range in order to compare estimated plot (x,y) with ground truth plot position (x,y)
+		anchors_xy_in_range = select_anchors(self.odom.x,self.odom.y,10.0+2.0)
+		#print(plots_xy_in_range)
 		
 		weights = []
 		weight_sum = 0.0
@@ -209,9 +212,6 @@ class robot_odometry:
 				self.anchors_xy.append( (px,py) )
 			#print(self.anchors_xy)
 
-			# list the plot plots in range in order to compare estimated plot (x,y) with ground truth plot position (x,y)
-			anchors_xy_in_range = select_anchors(pa[0],pa[1],10.0+1.0)
-			#print(plots_xy_in_range)
 
 			weight = compute_one_particles_weight(self.anchors_xy,anchors_xy_in_range)
 			weight_sum += weight
@@ -234,10 +234,10 @@ class robot_odometry:
 			#centroid_y /= len(self.particles)
 			#centroid_h /= len(self.particles)
 			# compare with ground truth
-			print("centroid x:" + str(round(self.centroid_x,2)) + "  y:" + str(round(self.centroid_y,2)) + "  h:" + str(round(self.centroid_h,2)) )
+			#print("centroid x:" + str(round(self.centroid_x,2)) + "  y:" + str(round(self.centroid_y,2)) + "  h:" + str(round(self.centroid_h,2)) )
 
 			# update odometr according centroid using filter 
-			alpha = 0.1
+			alpha = 0.2
 			beta = 1.0-alpha
 			self.odom.x = self.odom.x*beta + self.centroid_x*alpha
 			self.odom.y = self.odom.y*beta + self.centroid_y*alpha
@@ -261,3 +261,5 @@ class robot_odometry:
 				str(round(self.centroid_y,2)) + ";" +
 				str(round(self.centroid_h,2)) + "\n"
 			)
+		self.data_logger.flush()
+

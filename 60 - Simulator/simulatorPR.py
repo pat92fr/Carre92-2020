@@ -573,7 +573,7 @@ class Simulator(ShowBase):
 			self.steering = constraint(self.steering, -self.steering_clamp, self.steering_clamp)
 
 		#print(self.throttle)
-		max_engine_force = 50.0
+		max_engine_force = 60.0
 		max_brake_force = 10.0
 		if self.throttle >= 0.0:
 			self.engineForce = self.throttle*max_engine_force
@@ -591,8 +591,8 @@ class Simulator(ShowBase):
 		self.vehicle.setSteeringValue(self.steering, 1);
 
 		# Apply engine and brake to rear wheels
-		self.vehicle.applyEngineForce(self.engineForce, 0);
-		self.vehicle.applyEngineForce(self.engineForce, 1);
+		self.vehicle.applyEngineForce(self.engineForce, 2);
+		self.vehicle.applyEngineForce(self.engineForce, 3);
 		#self.vehicle.applyEngineForce(self.engineForce, 2);
 		#self.vehicle.applyEngineForce(self.engineForce, 3);
 		#self.vehicle.setBrake(self.brakeForce, 0);
@@ -740,8 +740,8 @@ class Simulator(ShowBase):
 ## MAIN ########################################################################
 
 print("Init telemetry server...")
-#tserver = telemetry_server("192.168.1.34", 7001)
-tserver = telemetry_server("192.168.43.5", 7001)
+tserver = telemetry_server("192.168.1.34", 7001)
+#tserver = telemetry_server("192.168.43.5", 7001)
 #tserver = telemetry_server("192.168.1.11", 7001)
 print("Done!")
 
