@@ -167,7 +167,7 @@ class Simulator(ShowBase):
 		self.disableMouse()
 
 		# load map
-		self.load_MKP_map()
+		self.load_PR_map()
 
 		# physics
 		# debugNode = BulletDebugNode('Debug')
@@ -487,6 +487,17 @@ class Simulator(ShowBase):
 			self.heading
 		)
 
+		# display virtual anchor
+		for va in self.virtualanchorNodePath :
+			va.setPos(1000.0,1000.0,1000.0)
+		virtual_anchor_index = 0
+		for a in self.robot_odometry.anchors :
+			px = self.current_position.getX() + a[1]*math.cos(math.radians(self.heading+a[0]))
+			py = self.current_position.getY() + a[1]*math.sin(math.radians(self.heading+a[0]))
+			self.virtualanchorNodePath[virtual_anchor_index].setPos(px,py,0.0)
+			virtual_anchor_index += 1
+
+
 		# reset control state
 		self.engineForce = 0.0
 		self.brakeForce = 0.0
@@ -592,7 +603,7 @@ class Simulator(ShowBase):
 
 		return task.cont
 
-	def load_MKP_map(self):
+	def load_PR_map(self):
 
         # load track
 		self.trackNodePath = self.loader.loadModel(panda_root_dir + media_dir + '/' + 'ground.bam')
@@ -635,6 +646,16 @@ class Simulator(ShowBase):
 			#cnp.show()
 			self.anchorNodePath.append(onp)
 			self.anchorCollisionNodePath.append(cnp)
+
+		# load anchros (odometry)
+		self.virtualanchorNodePath = []
+		for index in range(20) :
+			onp = self.loader.loadModel(panda_root_dir + media_dir + '/' + 'vplot.bam')
+			onp.setScale(2.0, 2.0, 2.0)
+			onp.setHpr(0.0, 90.0, 0.0)
+			onp.setPos(100.0,100.0,100.0)
+			onp.reparentTo(self.render)
+			self.virtualanchorNodePath.append(onp)
 
 		# load wp
 		self.waypointNodePath = []
