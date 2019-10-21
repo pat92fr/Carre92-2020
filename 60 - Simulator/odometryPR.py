@@ -209,8 +209,21 @@ class robot_odometry:
 			( -1.0,   0.0), # back
 			(  0.0,   1.0), # left
 			(  0.0,  -1.0), # right
+			(  1.0,   1.0), 
+			( -1.0,   1.0), 
+			(  1.0,  -1.0), 
+			(  1.0,  -1.0), 
+
+			(  2.0,   0.0), # front
+			( -2.0,   0.0), # back
+			(  0.0,   2.0), # left
+			(  0.0,  -2.0), # right
+			(  2.0,   2.0), 
+			( -2.0,   2.0), 
+			(  2.0,  -2.0), 
+			(  2.0,  -2.0), 					
 		]
-		scale_particle_position = 0.1 #m
+		scale_particle_position = 0.15 #m
 		# compute (x,y) of each particle
 		self.particles.clear()
 		for rpp in relative_particle_position:
@@ -277,7 +290,7 @@ class robot_odometry:
 		# compare with ground truth
 		print("centroid x:" + str(round(centroid_x,2)) + "  y:" + str(round(centroid_y,2)) + "  h:" + str(round(centroid_h,2)) )
 
-		alpha = 0.01
+		alpha = 0.1
 		beta = 1.0-alpha
 		if weight_sum>0.0:
 			self.odom.x = self.odom.x*beta + centroid_x*alpha
