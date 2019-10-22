@@ -13,9 +13,9 @@ def point_to_point_distance(x,y,waypoint_x,waypoint_y,distance):
 
 # helper : select anchors : return a list of anchor positions [ (x1,y1), (x2,y2), ..] from global anchor positions, 
 # each anchor of the list is in 'distance' range of current position (x,y)
-def select_anchors(x,y,distance):
+def select_anchors(x,y,distance,anchor_map):
 	list = []
-	for p in anchor_position:
+	for p in anchor_map:
 		if point_to_point_distance(x,y,p[0],p[1],distance):
 			list.append( (p[0],p[1]) )
 	return list
@@ -142,6 +142,11 @@ class robot_odometry:
 		# odometry
 		self.odom = my_odometry.odometry( start_position[0], start_position[1], start_position[2])
 
+		# map (x,y,w) of discovered anchors 
+		# (x,y,) for position
+		# (,w) for the number of time the anchors as beed merged (quality)
+		self.map = []
+
 		# log
 		self.data_logger = open("log.txt","w")
 
@@ -175,6 +180,59 @@ class robot_odometry:
 		#print("ground_truth is x:" + str(round(position_x,2)) + "m   y:" + str(round(position_y,2)) + "m   h:" + str(round(heading,2)) +"deg" )
 		#self.odom.print()
 
+
+		# MAP STAGE #####
+
+		# from current position, compute position of anchors : (x,y,h)position X (angle,distance)anchor ==> (x,y)anchor
+		self.anchors_xy.clear()
+		for a in self.anchors:
+			#ax = position_x + a[1]*math.cos(math.radians(a[0]+heading)) # I'm using ground truth position for testing purpose, use odometry at the end
+			#ay = position_y + a[1]*math.sin(math.radians(a[0]+heading)) # I'm using ground truth position for testing purpose, use odometry at the end
+			ax = self.odom.x + a[1]*math.cos(math.radians(a[0]+self.odom.h)) # I'm using ground truth position for testing purpose, use odometry at the end
+			ay = self.odom.y + a[1]*math.sin(math.radians(a[0]+self.odom.h)) # I'm using ground truth position for testing purpose, use odometry at the end
+			self.anchors_xy.append( (ax,ay) )
+
+		# merge with map
+		new_map = []
+		for a in self.anchors_xy:
+			ax, ay = a # take each visible anchor, one by one
+			merged = False
+			for m in self.map:
+				mx, my, mw = m # take on anchor from map
+				# merge if possible
+				if point_to_point_distance(mx,my,ax,ay,0.5): # tune max distance between anchor, tune number of iteration until locking anchor					
+					# merge, tune rate
+					if mw < 100:
+						mx = mx*0.9 + ax*0.1
+						my = my*0.9 + ay*0.1
+					else:
+						mx = mx*0.99 + ax*0.01
+						my = my*0.99 + ay*0.01
+					mw += 1
+					new_map.append( (mx,my,mw) )
+					merged = True
+			if not merged:
+				new_map.append( (ax,ay,0) )
+		# then add existing and untouched anchors from previous map
+		for m in self.map:
+			mx, my, mw = m 
+			exist_in_new_map = False
+			for n in new_map:
+				nx, ny, nw = n # take on anchor from new map	
+				if point_to_point_distance(mx,my,nx,ny,0.5):
+					exist_in_new_map = True
+			if not exist_in_new_map:
+				new_map.append( m )
+		self.map = new_map
+		#print(self.map)
+		#print(len(self.map))
+
+
+
+
+
+		# POSITION TRACKING #####
+
 		# spread particles around the pose given by the last odometry update (v,w)t X (x,y,h)t-1 => (x,y,h)t
 		# arrange particles in a grid
 		# first save cos and sin of heading
@@ -198,7 +256,7 @@ class robot_odometry:
 		#tODO : voire faire deux groupes de particules (un au niveau de ODOM) et un autre centré sur le dernier centroide pour tracker les dévidations
 
 		# list the plot plots in range in order to compare estimated plot (x,y) with ground truth plot position (x,y)
-		anchors_xy_in_range = select_anchors(self.odom.x,self.odom.y,10.0+2.0)
+		anchors_xy_in_range = select_anchors(self.odom.x,self.odom.y,10.0+2.0,self.map)
 		#print(plots_xy_in_range)
 		
 		weights = []
