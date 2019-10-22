@@ -1,4 +1,5 @@
 import my_controller
+from bezier_path import *
 
 
 from my_math import *
@@ -78,7 +79,7 @@ class robot_controller:
 		self.last_actual_speed_ms = 0.0
 
 		# lidar steering controller settings
-		self.pid_wall_following = my_controller.pid(kp=0.05, ki=0.0, kd=0.05, integral_max=1000, output_max=1.0, alpha=0.2) 
+		self.pid_wall_following = my_controller.pid(kp=0.05, ki=0.0, kd=0.0, integral_max=1000, output_max=1.0, alpha=0.2) 
 		self.lidar_direction_k_speed = 0.0
 		self.lidar_maximum_distance = 2.0
 
@@ -272,16 +273,34 @@ class robot_controller:
 
 		# interpolation from current position to waypoint
 		P1 = [position_x-1.0*math.cos(math.radians(heading)),position_y-1.0*math.sin(math.radians(heading))]
+		#P1 = [ wp_position[(self.current_waypoint_index-2)%len(wp_position)][0], wp_position[(self.current_waypoint_index-2)%len(wp_position)][1] ]
 		P2 = [position_x,position_y]
 		P3 = [waypoint_x,waypoint_y]
 		P4 = [ wp_position[(self.current_waypoint_index+1)%len(wp_position)][0], wp_position[(self.current_waypoint_index+1)%len(wp_position)][1] ]
 		#P4 = [waypoint_x+2.0*math.cos(math.radians(waypoint_heading)),waypoint_y+2.0*math.sin(math.radians(waypoint_heading))]
 		C = CatmullRomSpline(P1, P2, P3, P4, 10)
-
 		# next interpolated position
-		target_x = C[1][0]
-		target_y = C[1][1]
+		target_x = C[2][0]
+		target_y = C[2][1]
 		target_heading = math.degrees(math.atan2( target_y-position_y, target_x-position_x ))
+
+		# path, control_points = calc_4points_bezier_path(
+		# 	position_x, #start_x,
+		# 	position_y, #start_y, 
+		# 	math.radians(heading), #start_yaw,
+		# 	waypoint_x, #end_x, 
+		# 	waypoint_y, #end_y, 
+		# 	math.radians(waypoint_heading+90.0), #end_yaw, 
+		# 	3.0
+		# )
+		# # next interpolated position
+		# target_x = path.T[0][2]
+		# target_y = path.T[1][2]
+		# target_heading = math.degrees(math.atan2( target_y-position_y, target_x-position_x ))
+
+
+
+
 		
 		# angle error from -pi to -pi
 		delta_angle = target_heading-heading
