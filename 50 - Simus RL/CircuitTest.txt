@@ -1,0 +1,39 @@
+##### Circuit Test
+
+name CircuitTest
+
+# Dimensions
+width 1000
+height 800
+margins 0
+roadwidth 50
+
+Start  (400,100)
+End    (300,100)
+heading 180
+
+#Line (100,100) (100,700)
+#Line (100,700) (900,700)
+#Line (900,700) (900,100)
+#Line (900,100) (100,100)
+
+Line          (600,100) (300,100)
+Circle2Right  (300,100) (300,300)
+Circle2Left   (300,300) (300,500)
+Circle2Right  (300,500) (300,700)
+Line          (300,700) (400,700)
+Circle8Right  (400,700) (500,660)
+Circle8Left   (500,660) (600,620)
+Circle8Left   (600,620) (700,660)
+Circle8Right  (700,660) (800,700)
+Circle4Right  (800,700) (900,600)
+Line          (900,600) (900,500)
+Circle4Right  (900,500) (800,400)
+Circle4Left   (800,400) (700,300)
+Line          (700,300) (700,200)
+Circle4Right  (700,200) (600,100)
+
+
+
+
+
