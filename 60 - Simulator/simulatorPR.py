@@ -25,6 +25,7 @@ from trackPR import *
 
 import numpy as np
 import math
+import random
 import cv2
 from os import mkdir
 
@@ -302,6 +303,7 @@ class Simulator(ShowBase):
 		# simulator speed control state
 		self.delta_heading = 0.0 # deg
 		self.actual_rotation_speed_dps = 0.0 # dps
+		self.gyro_bias = 0.0 #random.uniform(-0.2,0.2) #dps
 
 		# simulator manual control
 		self.current_speed_ms = 0.0
@@ -408,6 +410,7 @@ class Simulator(ShowBase):
 					self.lap_timer = globalClock.getFrameTime()
 					self.lap_counter += 1
 					self.lap_distance = 0.0
+					print(len(self.robot_odometry.map))
 		self.lap_timer_text.setText(text=str(round(globalClock.getFrameTime()-self.lap_timer,1)) +"s")
 		self.best_lap_timer_text.setText(text=str(round(self.best_lap_timer,1)) +"s")
 
@@ -478,13 +481,9 @@ class Simulator(ShowBase):
 		# odometry
 		self.robot_odometry.process(
 			dt,
-			self.actual_speed_ms,
-			self.actual_rotation_speed_dps,
-			self.total_distance,
-			self.lidar_distance,
-			self.current_position.getX(),
-			self.current_position.getY(),
-			self.heading
+			self.actual_speed_ms, #+ random.uniform(-0.2,0.2),
+			self.actual_rotation_speed_dps, #+ random.uniform(-2.0,2.0) + self.gyro_bias*dt,
+			self.lidar_distance
 		)
 
 		# display virtual anchor
@@ -498,7 +497,7 @@ class Simulator(ShowBase):
 			virtual_anchor_index += 1
 
 		# display virtual odometry
-		self.virtualodometryNodePath.setPos(self.robot_odometry.odom.x,self.robot_odometry.odom.y,0.0)
+		self.virtualodometryNodePath.setPos(self.robot_odometry.odom_with_slam.x,self.robot_odometry.odom_with_slam.y,0.0)
 
 		# reset control state
 		self.engineForce = 0.0
@@ -765,6 +764,9 @@ print("Init sim engine...")
 app = Simulator(rc,odom)
 print("Done!")
 
+# log
+data_logger = open("log.txt","w")
+
 # game loop
 counter = 0
 record_counter = 0
@@ -816,10 +818,28 @@ while not app.quit:
 	counter += 1
 	#print(telemetry_client_connected)
 
+	# log
+	data_logger.write(
+
+			str(round(app.current_position.getX(),2)) + ";" +
+			str(round(app.current_position.getY(),2)) + ";" +
+			str(round(app.heading,2)) + ";" +
+
+			str(round(odom.odom.x,2)) + ";" +
+			str(round(odom.odom.y,2)) + ";" +
+			str(round(odom.odom.h,2)) + ";" +
+
+
+			str(round(odom.odom_with_slam.x,2)) + ";" +
+			str(round(odom.odom_with_slam.y,2)) + ";" +
+			str(round(odom.odom_with_slam.h,2)) + "\n"
+		)
+	data_logger.flush()
+
 dataset_file.close()
 print('m:' + str(record_counter))
 
     
-    
+  
 
 

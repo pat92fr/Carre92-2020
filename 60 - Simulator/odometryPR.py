@@ -141,25 +141,19 @@ class robot_odometry:
 
 		# odometry
 		self.odom = my_odometry.odometry( start_position[0], start_position[1], start_position[2])
+		self.odom_with_slam = my_odometry.odometry( start_position[0], start_position[1], start_position[2])
 
 		# map (x,y,w) of discovered anchors 
 		# (x,y,) for position
 		# (,w) for the number of time the anchors as beed merged (quality)
 		self.map = []
 
-		# log
-		self.data_logger = open("log.txt","w")
-
 	def process(
 		self,				
 		dt,
 		actual_speed_ms,
 		actual_rotation_speed_dps,
-		total_distance,
-		lidar_distance,
-		position_x,
-		position_y,
-		heading
+		lidar_distance
 		 ):
 
 		# update controller state
@@ -177,6 +171,7 @@ class robot_odometry:
 
 		# odometry update (v,w)t X (x,y,h)t-1 => (x,y,h)t
 		self.odom.update(self.actual_speed_ms,self.actual_rotation_speed_dps,dt)
+		self.odom_with_slam.update(self.actual_speed_ms,self.actual_rotation_speed_dps,dt)
 		#print("ground_truth is x:" + str(round(position_x,2)) + "m   y:" + str(round(position_y,2)) + "m   h:" + str(round(heading,2)) +"deg" )
 		#self.odom.print()
 
@@ -188,8 +183,8 @@ class robot_odometry:
 		for a in self.anchors:
 			#ax = position_x + a[1]*math.cos(math.radians(a[0]+heading)) # I'm using ground truth position for testing purpose, use odometry at the end
 			#ay = position_y + a[1]*math.sin(math.radians(a[0]+heading)) # I'm using ground truth position for testing purpose, use odometry at the end
-			ax = self.odom.x + a[1]*math.cos(math.radians(a[0]+self.odom.h)) # I'm using ground truth position for testing purpose, use odometry at the end
-			ay = self.odom.y + a[1]*math.sin(math.radians(a[0]+self.odom.h)) # I'm using ground truth position for testing purpose, use odometry at the end
+			ax = self.odom_with_slam.x + a[1]*math.cos(math.radians(a[0]+self.odom_with_slam.h)) # I'm using ground truth position for testing purpose, use odometry at the end
+			ay = self.odom_with_slam.y + a[1]*math.sin(math.radians(a[0]+self.odom_with_slam.h)) # I'm using ground truth position for testing purpose, use odometry at the end
 			self.anchors_xy.append( (ax,ay) )
 
 		# merge with map
@@ -200,7 +195,7 @@ class robot_odometry:
 			for m in self.map:
 				mx, my, mw = m # take on anchor from map
 				# merge if possible
-				if point_to_point_distance(mx,my,ax,ay,0.5): # tune max distance between anchor, tune number of iteration until locking anchor					
+				if point_to_point_distance(mx,my,ax,ay,1.0): # tune max distance between anchor, tune number of iteration until locking anchor					
 					# merge, tune rate
 					if mw < 100:
 						mx = mx*0.9 + ax*0.1
@@ -219,7 +214,7 @@ class robot_odometry:
 			exist_in_new_map = False
 			for n in new_map:
 				nx, ny, nw = n # take on anchor from new map	
-				if point_to_point_distance(mx,my,nx,ny,0.5):
+				if point_to_point_distance(mx,my,nx,ny,1.0):
 					exist_in_new_map = True
 			if not exist_in_new_map:
 				new_map.append( m )
@@ -236,14 +231,14 @@ class robot_odometry:
 		# spread particles around the pose given by the last odometry update (v,w)t X (x,y,h)t-1 => (x,y,h)t
 		# arrange particles in a grid
 		# first save cos and sin of heading
-		hcos = math.cos(math.radians(self.odom.h))
-		hsin = math.sin(math.radians(self.odom.h))
+		hcos = math.cos(math.radians(self.odom_with_slam.h))
+		hsin = math.sin(math.radians(self.odom_with_slam.h))
 		# compute (x,y) of each particle
 		self.particles.clear()
 		for rpp in self.relative_particle_position:
-			pax = self.odom.x + self.scale_particle_position*( hcos*rpp[0] - hsin*rpp[1] )
-			pay = self.odom.y + self.scale_particle_position*( hsin*rpp[0] + hcos*rpp[1] ) 
-			pah = self.odom.h
+			pax = self.odom_with_slam.x + self.scale_particle_position*( hcos*rpp[0] - hsin*rpp[1] )
+			pay = self.odom_with_slam.y + self.scale_particle_position*( hsin*rpp[0] + hcos*rpp[1] ) 
+			pah = self.odom_with_slam.h
 			self.particles.append( (pax,pay,pah) )
 		#print(self.particles)
 
@@ -295,29 +290,14 @@ class robot_odometry:
 			#print("centroid x:" + str(round(self.centroid_x,2)) + "  y:" + str(round(self.centroid_y,2)) + "  h:" + str(round(self.centroid_h,2)) )
 
 			# update odometr according centroid using filter 
-			alpha = 0.2
+			alpha = 0.3
 			beta = 1.0-alpha
-			self.odom.x = self.odom.x*beta + self.centroid_x*alpha
-			self.odom.y = self.odom.y*beta + self.centroid_y*alpha
+			self.odom_with_slam.x = self.odom_with_slam.x*beta + self.centroid_x*alpha
+			self.odom_with_slam.y = self.odom_with_slam.y*beta + self.centroid_y*alpha
 		else:
-			self.centroid_x = self.odom.x
-			self.centroid_y = self.odom.y
-			self.centroid_h = self.odom.h
-
-		self.data_logger.write(
-
-				str(round(position_x,2)) + ";" +
-				str(round(position_y,2)) + ";" +
-				str(round(heading,2)) + ";" +
-
-				str(round(self.odom.x,2)) + ";" +
-				str(round(self.odom.y,2)) + ";" +
-				str(round(self.odom.h,2)) + ";" +
+			self.centroid_x = self.odom_with_slam.x
+			self.centroid_y = self.odom_with_slam.y
+			self.centroid_h = self.odom_with_slam.h
 
 
-				str(round(self.centroid_x,2)) + ";" +
-				str(round(self.centroid_y,2)) + ";" +
-				str(round(self.centroid_h,2)) + "\n"
-			)
-		self.data_logger.flush()
 
