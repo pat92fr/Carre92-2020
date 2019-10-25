@@ -273,7 +273,7 @@ class robot_controller:
 
 		# interpolation from current position to waypoint
 		P1 = [position_x-1.0*math.cos(math.radians(heading)),position_y-1.0*math.sin(math.radians(heading))]
-		#P1 = [ wp_position[(self.current_waypoint_index-2)%len(wp_position)][0], wp_position[(self.current_waypoint_index-2)%len(wp_position)][1] ]
+		P1 = [ wp_position[(self.current_waypoint_index-2)%len(wp_position)][0], wp_position[(self.current_waypoint_index-2)%len(wp_position)][1] ]
 		P2 = [position_x,position_y]
 		P3 = [waypoint_x,waypoint_y]
 		P4 = [ wp_position[(self.current_waypoint_index+1)%len(wp_position)][0], wp_position[(self.current_waypoint_index+1)%len(wp_position)][1] ]

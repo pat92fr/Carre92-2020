@@ -109,6 +109,8 @@ class robot_odometry:
 
 	def __init__(self):
 
+		self.ignore_counter = 100 #ignore first frames
+
 		# odometry
 		self.odom = my_odometry.odometry( start_position[0], start_position[1], start_position[2])
 		self.odom_with_slam = my_odometry.odometry( start_position[0], start_position[1], start_position[2])
@@ -126,7 +128,7 @@ class robot_odometry:
 		self.h_scale_particle_position = 0.1 #m
 		for xi in range(-8,+8,1):
 			for yi in range(-8,+8,1):
-				for hi in range(-1,+1,1):
+				for hi in range(-2,+2,1):
 					self.relative_particle_position.append( (
 							xi*self.xy_scale_particle_position,
 							yi*self.xy_scale_particle_position,
@@ -147,11 +149,18 @@ class robot_odometry:
 		lidar_distance
 		 ):
 
+		# wait for 3D/Phys stabilize
+		if self.ignore_counter > 0:
+			self.ignore_counter -= 1
+			return
+
+		#debug inputs
+		print("actual_speed_ms:" + str(round(actual_speed_ms,2))+ "ms    actual_rotation_speed_dps:" + str(round(actual_rotation_speed_dps,2)) + "dps")
+
 		# stage #1 : odometry
 		# update (v,w)t X (x,y,h)t-1 => (x,y,h)t
 		self.odom.update(actual_speed_ms,actual_rotation_speed_dps,dt)
 		self.odom_with_slam.update(actual_speed_ms,actual_rotation_speed_dps,dt)
-		#print("ground_truth is x:" + str(round(position_x,2)) + "m   y:" + str(round(position_y,2)) + "m   h:" + str(round(heading,2)) +"deg" )
 		#self.odom.print()
 		#self.odom_with_slam.print()
 
@@ -212,11 +221,14 @@ class robot_odometry:
 				centroid_y += pa[1]*w
 				centroid_h += pa[2]*w
 			# compare with ground truth
+			print("error x:" + str(round(self.odom_with_slam.x-centroid_x,2)))
+			print("error y:" + str(round(self.odom_with_slam.y-centroid_y,2)))
+			print("error h:" + str(round(self.odom_with_slam.h-centroid_h,2)))
 			#print("centroid x:" + str(round(self.centroid_x,2)) + "  y:" + str(round(self.centroid_y,2)) + "  h:" + str(round(self.centroid_h,2)) )
 			# update odometr according centroid using filter
 			self.odom_with_slam.x = centroid_x
 			self.odom_with_slam.y = centroid_y
-			self.odom_with_slam.h = centroid_h			
+			#self.odom_with_slam.h = centroid_h			
 
 
 		# stage #7 : update map
@@ -242,8 +254,8 @@ class robot_odometry:
 						mx = mx*0.9 + ax*0.1
 						my = my*0.9 + ay*0.1
 					else:
-						mx = mx*0.99 + ax*0.01
-						my = my*0.99 + ay*0.01
+						mx = mx#mx*0.99 + ax*0.01 ##lock
+						my = my#my*0.99 + ay*0.01 ##lock
 					mw += 1
 					new_map.append( (mx,my,mw) )
 					merged = True
