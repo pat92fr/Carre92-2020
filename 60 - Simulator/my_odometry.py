@@ -9,20 +9,16 @@ class odometry:
 		self.x = x # pose
 		self.y = y
 		self.h = h
-		self.last_speed_ms = 0.0 # linear speed
 
 		# compute next pose from speed/dtime
 	def update(self,speed_ms,speed_dps,dt):
-		# compute delta heading
+		# compute delta distance & delta heading
 		delta_h = speed_dps*dt
-		# compute delta distance using average speed
-		delta_xy = (self.last_speed_ms+speed_ms)*dt/2.0	
-		# add delta
+		delta_xy = speed_ms*dt	
+		# add delta to current position
 		self.x += delta_xy*math.cos(math.radians(self.h + delta_h/2.0))
 		self.y += delta_xy*math.sin(math.radians(self.h + delta_h/2.0))
 		self.h += delta_h
-		# save speed to do averaging
-		self.last_speed_ms = speed_ms
 
 	def print(self):
 		print("odometry x:" + str(round(self.x,2)) + "m   y:" + str(round(self.y,2)) + "m   h:" + str(round(self.h,2)) +"deg" )
