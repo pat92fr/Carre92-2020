@@ -295,14 +295,16 @@ class robot_odometry:
 			#print("centroid x:" + str(round(self.centroid_x,2)) + "  y:" + str(round(self.centroid_y,2)) + "  h:" + str(round(self.centroid_h,2)) )
 
 			# update odometr according centroid using filter 
-			alpha = 0.2
-			beta = 1.0-alpha
-			self.odom.x = self.odom.x*beta + self.centroid_x*alpha
-			self.odom.y = self.odom.y*beta + self.centroid_y*alpha
-		else:
-			self.centroid_x = self.odom.x
-			self.centroid_y = self.odom.y
-			self.centroid_h = self.odom.h
+			#alpha = 0.2
+			#beta = 1.0-alpha
+			#self.odom.x = self.odom.x*beta + self.centroid_x*alpha
+			#self.odom.y = self.odom.y*beta + self.centroid_y*alpha
+			self.odom.x = self.centroid_x
+			self.odom.y = self.centroid_y
+		# else:
+		# 	self.centroid_x = self.odom.x
+		# 	self.centroid_y = self.odom.y
+		# 	self.centroid_h = self.odom.h
 
 		self.data_logger.write(
 

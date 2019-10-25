@@ -408,6 +408,7 @@ class Simulator(ShowBase):
 					self.lap_timer = globalClock.getFrameTime()
 					self.lap_counter += 1
 					self.lap_distance = 0.0
+					print(len(self.robot_odometry.map))
 		self.lap_timer_text.setText(text=str(round(globalClock.getFrameTime()-self.lap_timer,1)) +"s")
 		self.best_lap_timer_text.setText(text=str(round(self.best_lap_timer,1)) +"s")
 
@@ -740,8 +741,8 @@ class Simulator(ShowBase):
 ## MAIN ########################################################################
 
 print("Init telemetry server...")
-tserver = telemetry_server("192.168.1.34", 7001)
-#tserver = telemetry_server("192.168.43.5", 7001)
+#tserver = telemetry_server("192.168.1.34", 7001)
+tserver = telemetry_server("192.168.43.5", 7001)
 #tserver = telemetry_server("192.168.1.11", 7001)
 print("Done!")
 
