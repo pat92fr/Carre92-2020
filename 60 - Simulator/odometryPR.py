@@ -27,7 +27,7 @@ def select_anchors(x,y,distance,anchor_map):
 def localize_anchors(lidar_distance):
 	# process LIDAR point clound to find anchors
 	anchors = []
-	anchor_radius = 0.2 #m
+	anchor_radius = 0.1 #m
 	threshold_max_distance = 9.99 #m
 	# find cluster
 	cluster_radius = 0.2 #m
@@ -290,7 +290,7 @@ class robot_odometry:
 			#print("centroid x:" + str(round(self.centroid_x,2)) + "  y:" + str(round(self.centroid_y,2)) + "  h:" + str(round(self.centroid_h,2)) )
 
 			# update odometr according centroid using filter
-			alpha = 0.3
+			alpha = 1.0
 			beta = 1.0-alpha
 			self.odom_with_slam.x = self.odom_with_slam.x*beta + self.centroid_x*alpha
 			self.odom_with_slam.y = self.odom_with_slam.y*beta + self.centroid_y*alpha

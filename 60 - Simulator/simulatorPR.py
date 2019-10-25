@@ -253,7 +253,7 @@ class Simulator(ShowBase):
 			cn.setIntoCollideMask(BitMask32.allOff())
 			cn.setFromCollideMask(BitMask32.bit(2))
 			cnp = self.chassisNP.attachNewNode(cn)
-			#cnp.show()
+			#cnp.show() ###############################################################
 			self.LidarCN.append(cn)
 			self.LidarCNP.append(cnp)
 			#print(cnp.node().name)
@@ -639,12 +639,12 @@ class Simulator(ShowBase):
 			onp.setPos(op)
 			onp.reparentTo(self.render)
 			cn = CollisionNode('anchorCN')
-			cs = CollisionSphere(0.0,0.0,-0.1,0.1)
+			cs = CollisionSphere(0.0,0.0,-0.1,0.05) # scale is 2, then R is 0.5 to get 0.1 at the end ! 
 			cn.addSolid(cs)
 			cn.setIntoCollideMask(BitMask32.bit(2))
 			cn.setFromCollideMask(BitMask32.allOff())
 			cnp = onp.attachNewNode(cn)
-			#cnp.show()
+			#cnp.show() ###############################################################
 			self.anchorNodePath.append(onp)
 			self.anchorCollisionNodePath.append(cnp)
 
