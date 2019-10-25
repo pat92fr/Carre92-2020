@@ -11,7 +11,7 @@ from trackPR import *
 def point_to_point_distance(x,y,waypoint_x,waypoint_y,distance):
 	return ( (x-waypoint_x)*(x-waypoint_x) + (y-waypoint_y)*(y-waypoint_y) ) < (distance*distance)
 
-# helper : select anchors : return a list of anchor positions [ (x1,y1), (x2,y2), ..] from global anchor positions, 
+# helper : select anchors : return a list of anchor positions [ (x1,y1), (x2,y2), ..] from global anchor positions,
 # each anchor of the list is in 'distance' range of current position (x,y)
 def select_anchors(x,y,distance,anchor_map):
 	list = []
@@ -97,10 +97,10 @@ def compute_one_plot_weight(x,y,anchors_xy_in_range):
 # compute the average weight using the cost function primitive
 def compute_one_particles_weight(anchors_xy,anchors_xy_in_range):
 		average_weight = 0.0
-		if anchors_xy:	
+		if anchors_xy:
 			for p in anchors_xy:
 				average_weight += compute_one_plot_weight(p[0],p[1],anchors_xy_in_range)
-			average_weight /= len(anchors_xy)		
+			average_weight /= len(anchors_xy)
 		return average_weight
 #TODO vectorise
 
@@ -127,11 +127,11 @@ class robot_odometry:
 		self.relative_particle_position = []
 		for xi in range(-9,+9,1):
 			for yi in range(-9,+9,1):
-				self.relative_particle_position.append( (xi,yi) ) 
+				self.relative_particle_position.append( (xi,yi) )
 		# self.relative_particle_position.append( (0.0,0.0) )
 		# for angle in range(0,360,20):
 		# 	for distance in range(1,10,1):
-		# 		self.relative_particle_position.append( (0.1*float(distance)*math.cos(math.radians(angle)),0.1*float(distance)*math.sin(math.radians(angle)) ) ) 
+		# 		self.relative_particle_position.append( (0.1*float(distance)*math.cos(math.radians(angle)),0.1*float(distance)*math.sin(math.radians(angle)) ) )
 
 
 		self.scale_particle_position = 0.15 #m
@@ -141,25 +141,19 @@ class robot_odometry:
 
 		# odometry
 		self.odom = my_odometry.odometry( start_position[0], start_position[1], start_position[2])
+		self.odom_with_slam = my_odometry.odometry( start_position[0], start_position[1], start_position[2])
 
-		# map (x,y,w) of discovered anchors 
+		# map (x,y,w) of discovered anchors
 		# (x,y,) for position
 		# (,w) for the number of time the anchors as beed merged (quality)
 		self.map = []
 
-		# log
-		self.data_logger = open("log.txt","w")
-
 	def process(
-		self,				
+		self,
 		dt,
 		actual_speed_ms,
 		actual_rotation_speed_dps,
-		total_distance,
-		lidar_distance,
-		position_x,
-		position_y,
-		heading
+		lidar_distance
 		 ):
 
 		# update controller state
@@ -177,6 +171,7 @@ class robot_odometry:
 
 		# odometry update (v,w)t X (x,y,h)t-1 => (x,y,h)t
 		self.odom.update(self.actual_speed_ms,self.actual_rotation_speed_dps,dt)
+		self.odom_with_slam.update(self.actual_speed_ms,self.actual_rotation_speed_dps,dt)
 		#print("ground_truth is x:" + str(round(position_x,2)) + "m   y:" + str(round(position_y,2)) + "m   h:" + str(round(heading,2)) +"deg" )
 		#self.odom.print()
 
@@ -188,8 +183,8 @@ class robot_odometry:
 		for a in self.anchors:
 			#ax = position_x + a[1]*math.cos(math.radians(a[0]+heading)) # I'm using ground truth position for testing purpose, use odometry at the end
 			#ay = position_y + a[1]*math.sin(math.radians(a[0]+heading)) # I'm using ground truth position for testing purpose, use odometry at the end
-			ax = self.odom.x + a[1]*math.cos(math.radians(a[0]+self.odom.h)) # I'm using ground truth position for testing purpose, use odometry at the end
-			ay = self.odom.y + a[1]*math.sin(math.radians(a[0]+self.odom.h)) # I'm using ground truth position for testing purpose, use odometry at the end
+			ax = self.odom_with_slam.x + a[1]*math.cos(math.radians(a[0]+self.odom_with_slam.h)) # I'm using ground truth position for testing purpose, use odometry at the end
+			ay = self.odom_with_slam.y + a[1]*math.sin(math.radians(a[0]+self.odom_with_slam.h)) # I'm using ground truth position for testing purpose, use odometry at the end
 			self.anchors_xy.append( (ax,ay) )
 
 		# merge with map
@@ -200,7 +195,7 @@ class robot_odometry:
 			for m in self.map:
 				mx, my, mw = m # take on anchor from map
 				# merge if possible
-				if point_to_point_distance(mx,my,ax,ay,0.5): # tune max distance between anchor, tune number of iteration until locking anchor					
+				if point_to_point_distance(mx,my,ax,ay,1.0): # tune max distance between anchor, tune number of iteration until locking anchor
 					# merge, tune rate
 					if mw < 100:
 						mx = mx*0.9 + ax*0.1
@@ -215,11 +210,11 @@ class robot_odometry:
 				new_map.append( (ax,ay,0) )
 		# then add existing and untouched anchors from previous map
 		for m in self.map:
-			mx, my, mw = m 
+			mx, my, mw = m
 			exist_in_new_map = False
 			for n in new_map:
-				nx, ny, nw = n # take on anchor from new map	
-				if point_to_point_distance(mx,my,nx,ny,0.5):
+				nx, ny, nw = n # take on anchor from new map
+				if point_to_point_distance(mx,my,nx,ny,1.0):
 					exist_in_new_map = True
 			if not exist_in_new_map:
 				new_map.append( m )
@@ -236,14 +231,14 @@ class robot_odometry:
 		# spread particles around the pose given by the last odometry update (v,w)t X (x,y,h)t-1 => (x,y,h)t
 		# arrange particles in a grid
 		# first save cos and sin of heading
-		hcos = math.cos(math.radians(self.odom.h))
-		hsin = math.sin(math.radians(self.odom.h))
+		hcos = math.cos(math.radians(self.odom_with_slam.h))
+		hsin = math.sin(math.radians(self.odom_with_slam.h))
 		# compute (x,y) of each particle
 		self.particles.clear()
 		for rpp in self.relative_particle_position:
-			pax = self.odom.x + self.scale_particle_position*( hcos*rpp[0] - hsin*rpp[1] )
-			pay = self.odom.y + self.scale_particle_position*( hsin*rpp[0] + hcos*rpp[1] ) 
-			pah = self.odom.h
+			pax = self.odom_with_slam.x + self.scale_particle_position*( hcos*rpp[0] - hsin*rpp[1] )
+			pay = self.odom_with_slam.y + self.scale_particle_position*( hsin*rpp[0] + hcos*rpp[1] )
+			pah = self.odom_with_slam.h
 			self.particles.append( (pax,pay,pah) )
 		#print(self.particles)
 
@@ -258,7 +253,7 @@ class robot_odometry:
 		# list the plot plots in range in order to compare estimated plot (x,y) with ground truth plot position (x,y)
 		anchors_xy_in_range = select_anchors(self.odom.x,self.odom.y,10.0+2.0,self.map)
 		#print(plots_xy_in_range)
-		
+
 		weights = []
 		weight_sum = 0.0
 		for pa in self.particles:
@@ -294,32 +289,12 @@ class robot_odometry:
 			# compare with ground truth
 			#print("centroid x:" + str(round(self.centroid_x,2)) + "  y:" + str(round(self.centroid_y,2)) + "  h:" + str(round(self.centroid_h,2)) )
 
-			# update odometr according centroid using filter 
-			#alpha = 0.2
-			#beta = 1.0-alpha
-			#self.odom.x = self.odom.x*beta + self.centroid_x*alpha
-			#self.odom.y = self.odom.y*beta + self.centroid_y*alpha
-			self.odom.x = self.centroid_x
-			self.odom.y = self.centroid_y
-		# else:
-		# 	self.centroid_x = self.odom.x
-		# 	self.centroid_y = self.odom.y
-		# 	self.centroid_h = self.odom.h
-
-		self.data_logger.write(
-
-				str(round(position_x,2)) + ";" +
-				str(round(position_y,2)) + ";" +
-				str(round(heading,2)) + ";" +
-
-				str(round(self.odom.x,2)) + ";" +
-				str(round(self.odom.y,2)) + ";" +
-				str(round(self.odom.h,2)) + ";" +
-
-
-				str(round(self.centroid_x,2)) + ";" +
-				str(round(self.centroid_y,2)) + ";" +
-				str(round(self.centroid_h,2)) + "\n"
-			)
-		self.data_logger.flush()
-
+			# update odometr according centroid using filter
+			alpha = 0.3
+			beta = 1.0-alpha
+			self.odom_with_slam.x = self.odom_with_slam.x*beta + self.centroid_x*alpha
+			self.odom_with_slam.y = self.odom_with_slam.y*beta + self.centroid_y*alpha
+		else:
+			self.centroid_x = self.odom_with_slam.x
+			self.centroid_y = self.odom_with_slam.y
+			self.centroid_h = self.odom_with_slam.h

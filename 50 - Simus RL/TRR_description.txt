@@ -1,0 +1,39 @@
+##### Circuit Toulouse Robot Race
+
+name TRR
+
+# Dimensions
+width 5000
+height 500
+margins 2000
+
+# circuit description
+Start  (2500,75)
+Line (2500,75) (250,75)
+#Line (2500,100) (2550,200)
+Circle2Right (250,75) (250,425)
+#Circle2fLeft  (250,75) (250,425)
+Line (250,425) (1734,425)
+# chicane dimensions : 191.5 cm for a 8th turn
+# So radius verifies R.sin(45)=191.5, and R=270.82
+# chicane points are, relatively to the beginning 
+# 0,0
+# 191.5, R*(1-cos45)=383-79.32=303.68
+# 383, 2*R*(1-cos45)
+# 574.5, R*(1-cos45)
+# 766, 0
+# 957.5, R*(1-cos45)
+# 1149, -2*R*(1-cos45)
+# 1340.5, -R*(1-cos45)
+# 1532, 0
+Circle8Right (1734, 425)      (1925.5, 345.7)
+Circle8Left  (1925.5, 345.7)  (2117, 266.36)
+Circle8Left  (2117, 266.36)    (2308.5, 345.7)
+Circle8Right (2308.5, 345.7)  (2500, 425)
+Circle8Right (2500, 425)      (2691.5, 345.37)
+Circle8Left  (2691.5, 345.37)  (2883, 266.36)
+Circle8Left  (2883, 266.36)    (3074.5, 345.37)
+Circle8Right (3074.5, 345.37)  (3266, 425)
+Line (3266, 425) (4750, 425)
+Circle2Right (4750, 425) (4750, 75)
+Line (4750, 75) (2500, 75)

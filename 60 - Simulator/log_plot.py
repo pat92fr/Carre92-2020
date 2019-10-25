@@ -45,7 +45,7 @@ for l in lines:
 p1=plt.plot(x,y,'g:')
 p2=plt.plot(ox,oy,'b-')
 p3=plt.plot(px,py,'r-')
-plt.legend(["Truth", "Odometry","MonteCarlo"] )
+plt.legend(["Ground-Truth", "Odometry","p-SLAM"] )
 plt.title("Path")  
 plt.xlabel('x')
 plt.ylabel('y')
