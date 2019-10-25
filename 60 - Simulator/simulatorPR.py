@@ -490,7 +490,7 @@ class Simulator(ShowBase):
 		for va in self.virtualanchorNodePath :
 			va.setPos(1000.0,1000.0,1000.0)
 		virtual_anchor_index = 0
-		for a in self.robot_odometry.anchors :
+		for a in self.robot_odometry.landmarks :
 			px = self.current_position.getX() + a[1]*math.cos(math.radians(self.heading+a[0]))
 			py = self.current_position.getY() + a[1]*math.sin(math.radians(self.heading+a[0]))
 			self.virtualanchorNodePath[virtual_anchor_index].setPos(px,py,0.0)
