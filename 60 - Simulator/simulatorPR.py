@@ -253,7 +253,7 @@ class Simulator(ShowBase):
 			cn.setIntoCollideMask(BitMask32.allOff())
 			cn.setFromCollideMask(BitMask32.bit(2))
 			cnp = self.chassisNP.attachNewNode(cn)
-			#cnp.show()
+			#cnp.show() ###############################################################
 			self.LidarCN.append(cn)
 			self.LidarCNP.append(cnp)
 			#print(cnp.node().name)
@@ -490,7 +490,7 @@ class Simulator(ShowBase):
 		for va in self.virtualanchorNodePath :
 			va.setPos(1000.0,1000.0,1000.0)
 		virtual_anchor_index = 0
-		for a in self.robot_odometry.anchors :
+		for a in self.robot_odometry.landmarks :
 			px = self.current_position.getX() + a[1]*math.cos(math.radians(self.heading+a[0]))
 			py = self.current_position.getY() + a[1]*math.sin(math.radians(self.heading+a[0]))
 			self.virtualanchorNodePath[virtual_anchor_index].setPos(px,py,0.0)
@@ -639,12 +639,12 @@ class Simulator(ShowBase):
 			onp.setPos(op)
 			onp.reparentTo(self.render)
 			cn = CollisionNode('anchorCN')
-			cs = CollisionSphere(0.0,0.0,-0.1,0.1)
+			cs = CollisionSphere(0.0,0.0,-0.1,0.05) # scale is 2, then R is 0.5 to get 0.1 at the end ! 
 			cn.addSolid(cs)
 			cn.setIntoCollideMask(BitMask32.bit(2))
 			cn.setFromCollideMask(BitMask32.allOff())
 			cnp = onp.attachNewNode(cn)
-			#cnp.show()
+			#cnp.show() ###############################################################
 			self.anchorNodePath.append(onp)
 			self.anchorCollisionNodePath.append(cnp)
 
@@ -739,8 +739,8 @@ class Simulator(ShowBase):
 ## MAIN ########################################################################
 
 print("Init telemetry server...")
-tserver = telemetry_server("192.168.1.34", 7001)
-#tserver = telemetry_server("192.168.43.5", 7001)
+#tserver = telemetry_server("192.168.1.34", 7001)
+tserver = telemetry_server("192.168.43.5", 7001)
 #tserver = telemetry_server("192.168.1.11", 7001)
 print("Done!")
 
