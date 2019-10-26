@@ -129,10 +129,10 @@ class robot_odometry:
 		self.weights = []
 		# fix relative position of paricles around (x,y,h) given by odometry
 		self.relative_particle_position = []
-		self.xy_scale_particle_position = 0.15 #m
+		self.xy_scale_particle_position = 0.2 #m
 		self.h_scale_particle_position = 0.1 #m
-		for xi in range(-7,+8,1):
-			for yi in range(-7,+8,1):
+		for xi in range(-4,+5,1):
+			for yi in range(-4,+5,1):
 				for hi in range(-1,+2,1):
 					self.relative_particle_position.append( (
 							xi*self.xy_scale_particle_position,
@@ -145,6 +145,10 @@ class robot_odometry:
 		# (,w) for the number of time the landmarks as beed merged (quality)
 		self.map = []
 
+		# log
+		self.error_x = 0.0
+		self.error_y = 0.0
+		self.error_h = 0.0
 
 	def process(
 		self,
@@ -225,10 +229,13 @@ class robot_odometry:
 				centroid_x += pa[0]*w
 				centroid_y += pa[1]*w
 				centroid_h += pa[2]*w
-			# compare with ground truth
-			print("error x:" + str(round(self.odom_with_slam.x-centroid_x,2)))
-			print("error y:" + str(round(self.odom_with_slam.y-centroid_y,2)))
-			print("error h:" + str(round(self.odom_with_slam.h-centroid_h,2)))
+			# store error correction
+			self.error_x = self.odom_with_slam.x-centroid_x
+			self.error_y = self.odom_with_slam.y-centroid_y
+			self.error_h = self.odom_with_slam.h-centroid_h
+			#print("error x:" + str(round(self.odom_with_slam.x-centroid_x,2)))
+			#print("error y:" + str(round(self.odom_with_slam.y-centroid_y,2)))
+			#print("error h:" + str(round(self.odom_with_slam.h-centroid_h,2)))
 			#print("centroid x:" + str(round(self.centroid_x,2)) + "  y:" + str(round(self.centroid_y,2)) + "  h:" + str(round(self.centroid_h,2)) )
 			# update odometr according centroid using filter
 			self.odom_with_slam.x = centroid_x
@@ -278,5 +285,5 @@ class robot_odometry:
 				new_map.append( m )
 		self.map = new_map
 		#print(self.map)
-		print(len(self.map))
+		#print(len(self.map))
 

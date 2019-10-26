@@ -410,7 +410,8 @@ class Simulator(ShowBase):
 					self.lap_timer = globalClock.getFrameTime()
 					self.lap_counter += 1
 					self.lap_distance = 0.0
-					print(len(self.robot_odometry.map))
+					print("number of landmarks:" + str(len(self.robot_odometry.map)))
+					print("gyro bias:" + str(round(self.gyro_bias,2)))
 		self.lap_timer_text.setText(text=str(round(globalClock.getFrameTime()-self.lap_timer,1)) +"s")
 		self.best_lap_timer_text.setText(text=str(round(self.best_lap_timer,1)) +"s")
 
@@ -832,7 +833,11 @@ while not app.quit:
 
 			str(round(odom.odom_with_slam.x,2)) + ";" +
 			str(round(odom.odom_with_slam.y,2)) + ";" +
-			str(round(odom.odom_with_slam.h,2)) + "\n"
+			str(round(odom.odom_with_slam.h,2)) + ";" +
+
+			str(round(odom.error_x,3)) + ";" +
+			str(round(odom.error_y,3)) + ";" +
+			str(round(odom.error_h,3)) + "\n"
 		)
 	data_logger.flush()
 

@@ -1,6 +1,6 @@
 import math
 
-# pose is (x,y,h)
+# pose is (x,y,h) (m,m,degres)
 # odometry computes next pose from initial/current pose and speeds/dtime
 class odometry:
 
@@ -10,7 +10,7 @@ class odometry:
 		self.y = y
 		self.h = h
 
-		# compute next pose from speed/dtime
+		# compute next pose from speed/dtime (m/s,dps,s)
 	def update(self,speed_ms,speed_dps,dt):
 		# compute delta distance & delta heading
 		delta_h = speed_dps*dt

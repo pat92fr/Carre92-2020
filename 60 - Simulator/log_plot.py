@@ -25,6 +25,9 @@ oh = np.zeros(m)
 px = np.zeros(m)
 py = np.zeros(m)
 ph = np.zeros(m)
+ex = np.zeros(m)
+ey = np.zeros(m)
+eh = np.zeros(m)
 counter = 0
 for l in lines:
 	fields = l.split(';')
@@ -40,6 +43,10 @@ for l in lines:
 	py[counter] = fields[7]
 	ph[counter] = fields[8]
 
+	ex[counter] = fields[9]
+	ey[counter] = fields[10]
+	eh[counter] = fields[11]
+
 	counter += 1
 
 p1=plt.plot(x,y,'g:')
@@ -49,4 +56,12 @@ plt.legend(["Ground-Truth", "Odometry","p-SLAM"] )
 plt.title("Path")  
 plt.xlabel('x')
 plt.ylabel('y')
+plt.show()
+
+p1=plt.plot(ex)
+p2=plt.plot(ey)
+p3=plt.plot(eh)
+plt.xlabel('t')
+plt.ylabel('error')
+plt.legend(["x", "y","h"] )
 plt.show()
