@@ -303,7 +303,7 @@ class Simulator(ShowBase):
 		# simulator speed control state
 		self.delta_heading = 0.0 # deg
 		self.actual_rotation_speed_dps = 0.0 # dps
-		self.gyro_bias = 0.0 #random.uniform(-0.2,0.2) #dps
+		self.gyro_bias = 0.1 #random.uniform(-0.2,0.2) #dps
 
 		# simulator manual control
 		self.current_speed_ms = 0.0
@@ -481,8 +481,8 @@ class Simulator(ShowBase):
 		# odometry
 		self.robot_odometry.process(
 			dt,
-			self.actual_speed_ms, #+ random.uniform(-0.2,0.2),
-			self.actual_rotation_speed_dps, #+ random.uniform(-2.0,2.0) + self.gyro_bias*dt,
+			self.actual_speed_ms + random.uniform(-0.2,0.2),
+			self.actual_rotation_speed_dps + random.uniform(-2.0,2.0) + self.gyro_bias*dt,
 			self.lidar_distance
 		)
 
