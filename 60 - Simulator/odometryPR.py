@@ -7,16 +7,13 @@ import random
 from my_math import *
 from trackPR import *
 
-# helper : return True if the waypoint (wx,wy) is near the current position (x,y)
-def point_to_point_distance(x,y,waypoint_x,waypoint_y,distance):
-	return ( (x-waypoint_x)*(x-waypoint_x) + (y-waypoint_y)*(y-waypoint_y) ) < (distance*distance)
 
 # helper : select landmarks : return a list of anchor positions [ (x1,y1), (x2,y2), ..] from global anchor positions,
 # each anchor of the list is in 'distance' range of current position (x,y)
 def select_landmarks(x,y,distance,anchor_map):
 	list = []
 	for p in anchor_map:
-		if point_to_point_distance(x,y,p[0],p[1],distance):
+		if compare_two_points_distance(x,y,p[0],p[1],distance):
 			list.append( (p[0],p[1]) )
 	return list
 
@@ -56,8 +53,11 @@ def localize_landmarks(lidar_distance):
 			in_cluster = False
 
 		elif in_cluster and (distance < threshold_max_distance) and (abs(distance-current_cluster_min_distance)<=cluster_radius) : # inside current cluster, new distance
-			current_cluster_min_distance = min(distance,current_cluster_min_distance)
-			current_cluster_min_angle = angle
+			if distance < current_cluster_min_distance:
+				current_cluster_min_distance = distance
+				current_cluster_min_angle = angle
+			elif distance == current_cluster_min_distance:
+				current_cluster_min_angle = ( angle + current_cluster_min_angle ) / 2.0
 			current_cluster_end_angle = angle
 
 		elif in_cluster and (distance < threshold_max_distance) and (abs(distance-current_cluster_min_distance)>cluster_radius) : # end of current cluster and new cluster detection
@@ -92,10 +92,10 @@ def cost_function_primitive(x,a=0.1,b=0.3): # good result with b-a=0.1, not too 
 # helper : compute one anchor weight
 # from the estimated anchor position, and the list of landmarks in range,
 # compute the weight using the cost function primitive
-def compute_one_plot_weight(x,y,landmarks_xy_in_range):
+def compute_one_plot_weight( landmark_xy,landmarks_xy_in_range):
 	weight = 0.0
 	for p in landmarks_xy_in_range:
-		weight += cost_function_primitive(math.sqrt( (x-p[0])*(x-p[0]) + (y-p[1])*(y-p[1]) ))
+		weight += cost_function_primitive( euclidean_distance( landmark_xy, p ) )
 	return weight
 
 # helper : compute one particle weight, based on the list of estimated anchor position and the list of landmarks in range
@@ -103,9 +103,8 @@ def compute_one_plot_weight(x,y,landmarks_xy_in_range):
 def compute_one_particles_weight(landmarks_xy,landmarks_xy_in_range):
 		weight = 0.0
 		if landmarks_xy:
-			for p in landmarks_xy:
-				weight += compute_one_plot_weight(p[0],p[1],landmarks_xy_in_range)
-			#weight /= len(landmarks_xy)
+			for lxy in landmarks_xy:
+				weight += compute_one_plot_weight(lxy,landmarks_xy_in_range)
 		return weight
 
 
@@ -129,11 +128,12 @@ class robot_odometry:
 		self.weights = []
 		# fix relative position of paricles around (x,y,h) given by odometry
 		self.relative_particle_position = []
-		self.xy_scale_particle_position = 0.2 #m
+		self.xy_scale_particle_position = 0.1 #m
 		self.h_scale_particle_position = 0.1 #m
-		for xi in range(-4,+5,1):
-			for yi in range(-4,+5,1):
-				for hi in range(-1,+2,1):
+		n = 4
+		for xi in range(-n,n+1,1):
+			for yi in range(-n,n+1,1):
+				for hi in range(-3,4,1):
 					self.relative_particle_position.append( (
 							xi*self.xy_scale_particle_position,
 							yi*self.xy_scale_particle_position,
@@ -260,7 +260,7 @@ class robot_odometry:
 			for m in self.map:
 				mx, my, mw = m # take on anchor from map
 				# merge if possible
-				if point_to_point_distance(mx,my,ax,ay,1.2): # tune max distance between anchor, tune number of iteration until locking anchor
+				if compare_two_points_distance(mx,my,ax,ay,1.2): # tune max distance between anchor, tune number of iteration until locking anchor
 					# merge, tune rate
 					if mw < 100:
 						mx = mx*0.9 + ax*0.1
@@ -279,7 +279,7 @@ class robot_odometry:
 			exist_in_new_map = False
 			for n in new_map:
 				nx, ny, nw = n # take on anchor from new map
-				if point_to_point_distance(mx,my,nx,ny,1.2):
+				if compare_two_points_distance(mx,my,nx,ny,1.2):
 					exist_in_new_map = True
 			if not exist_in_new_map:
 				new_map.append( m )
