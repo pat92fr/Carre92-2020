@@ -30,11 +30,12 @@ def localize_landmarks(lidar_distance):
 	anchor_radius = 0.1 #m
 	threshold_max_distance = 9.99 #m
 	# find cluster
-	cluster_radius = 0.2 #m
+	cluster_radius = 0.5 #m (at least 1m between landmarks)
 	current_cluster_min_distance = 0.0 #m
+	current_cluster_min_angle = 0.0 # deg
 	current_cluster_begin_angle = 0.0 # deg
 	current_cluster_end_angle = 0.0 # deg
-	current_cluster_median_angle = 0.0 # deg
+	# TODO : use begin and end angles to check if this cluster is a landmark (radius and distance do an angle)
 	in_cluster = False
 	for angle in range(-135,+135,1):
 		key ='LidarCN'+str(angle)
@@ -44,27 +45,30 @@ def localize_landmarks(lidar_distance):
 			# start new cluster
 			in_cluster = True
 			current_cluster_min_distance = distance
+			current_cluster_min_angle = angle
 			current_cluster_begin_angle = angle
 			current_cluster_end_angle = angle
 
 		elif in_cluster and (distance >= threshold_max_distance): # end of current cluster
 			# regsiter current cluster
-			current_cluster_median_angle = (current_cluster_end_angle+current_cluster_begin_angle)/2.0
-			landmarks.append( (current_cluster_median_angle, current_cluster_min_distance+anchor_radius ))
+			if( current_cluster_min_distance*math.sin(math.radians(current_cluster_end_angle-current_cluster_begin_angle)) <= 2.0*anchor_radius):
+				landmarks.append( (current_cluster_min_angle, current_cluster_min_distance+anchor_radius ))
 			in_cluster = False
 
 		elif in_cluster and (distance < threshold_max_distance) and (abs(distance-current_cluster_min_distance)<=cluster_radius) : # inside current cluster, new distance
 			current_cluster_min_distance = min(distance,current_cluster_min_distance)
+			current_cluster_min_angle = angle
 			current_cluster_end_angle = angle
 
 		elif in_cluster and (distance < threshold_max_distance) and (abs(distance-current_cluster_min_distance)>cluster_radius) : # end of current cluster and new cluster detection
 			# regsiter current cluster
-			current_cluster_median_angle = (current_cluster_end_angle+current_cluster_begin_angle)/2.0
-			landmarks.append( (current_cluster_median_angle, current_cluster_min_distance+anchor_radius ))
+			if( current_cluster_min_distance*math.sin(math.radians(current_cluster_end_angle-current_cluster_begin_angle)) <= 2.0*anchor_radius):
+				landmarks.append( (current_cluster_min_angle, current_cluster_min_distance+anchor_radius ))
 			in_cluster = False
 			# start new cluster
 			in_cluster = True
 			current_cluster_min_distance = distance
+			current_cluster_min_angle = angle
 			current_cluster_begin_angle = angle
 			current_cluster_end_angle = angle
 
@@ -77,10 +81,11 @@ def localize_landmarks(lidar_distance):
 
 # helper : primitive for cost function : y=f(x)
 # x=0 ==> y=1
-# x=a ==> y=0
-# x>a ==> y=0
-def cost_function_primitive(x,a=0.2): # good result with 0.1, not too bad with 0.2
-	return max(0.0,1.0-x/a)
+# x=a ==> y=1
+# x=b ==> y=0
+# x>b ==> y=0
+def cost_function_primitive(x,a=0.1,b=0.3): # good result with b-a=0.1, not too bad with b-a=0.2
+	return min(1.0,max(0.0,1.0-(x-a)/(b-a)))
 # this primitive is used in order to update the waight of particles.
 # the range around an anchor is 50cm
 
@@ -100,7 +105,7 @@ def compute_one_particles_weight(landmarks_xy,landmarks_xy_in_range):
 		if landmarks_xy:
 			for p in landmarks_xy:
 				weight += compute_one_plot_weight(p[0],p[1],landmarks_xy_in_range)
-			weight /= len(landmarks_xy)
+			#weight /= len(landmarks_xy)
 		return weight
 
 
@@ -109,7 +114,7 @@ class robot_odometry:
 
 	def __init__(self):
 
-		self.ignore_counter = 100 #ignore first frames
+		self.ignore_counter = 120 #ignore first frames
 
 		# odometry
 		self.odom = my_odometry.odometry( start_position[0], start_position[1], start_position[2])
@@ -119,16 +124,16 @@ class robot_odometry:
 		self.landmarks = []
 
 		# Particles filter : creation of particles
-		self.particles_count = 100
+		#self.particles_count = 100
 		self.particles = []
 		self.weights = []
 		# fix relative position of paricles around (x,y,h) given by odometry
 		self.relative_particle_position = []
 		self.xy_scale_particle_position = 0.15 #m
 		self.h_scale_particle_position = 0.1 #m
-		for xi in range(-8,+8,1):
-			for yi in range(-8,+8,1):
-				for hi in range(-2,+2,1):
+		for xi in range(-7,+8,1):
+			for yi in range(-7,+8,1):
+				for hi in range(-1,+2,1):
 					self.relative_particle_position.append( (
 							xi*self.xy_scale_particle_position,
 							yi*self.xy_scale_particle_position,
@@ -155,7 +160,7 @@ class robot_odometry:
 			return
 
 		#debug inputs
-		print("actual_speed_ms:" + str(round(actual_speed_ms,2))+ "ms    actual_rotation_speed_dps:" + str(round(actual_rotation_speed_dps,2)) + "dps")
+		#print("actual_speed_ms:" + str(round(actual_speed_ms,3))+ "ms    actual_rotation_speed_dps:" + str(round(actual_rotation_speed_dps,2)) + "dps")
 
 		# stage #1 : odometry
 		# update (v,w)t X (x,y,h)t-1 => (x,y,h)t
@@ -228,7 +233,7 @@ class robot_odometry:
 			# update odometr according centroid using filter
 			self.odom_with_slam.x = centroid_x
 			self.odom_with_slam.y = centroid_y
-			#self.odom_with_slam.h = centroid_h			
+			self.odom_with_slam.h = centroid_h			
 
 
 		# stage #7 : update map
@@ -272,6 +277,6 @@ class robot_odometry:
 			if not exist_in_new_map:
 				new_map.append( m )
 		self.map = new_map
-		print(self.map)
+		#print(self.map)
 		print(len(self.map))
 
