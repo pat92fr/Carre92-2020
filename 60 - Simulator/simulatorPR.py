@@ -483,7 +483,7 @@ class Simulator(ShowBase):
 		self.robot_odometry.process(
 			dt,
 			self.actual_speed_ms + gaussian_noise(0.0,0.2),
-			self.actual_rotation_speed_dps + gaussian_noise(self.gyro_bias,2.0),
+			self.actual_rotation_speed_dps + gaussian_noise(0.0,2.0), #+ gaussian_noise(self.gyro_bias,2.0),
 			self.lidar_distance
 		)
 
@@ -492,8 +492,10 @@ class Simulator(ShowBase):
 			va.setPos(1000.0,1000.0,1000.0)
 		virtual_anchor_index = 0
 		for a in self.robot_odometry.landmarks :
-			px = self.current_position.getX() + a[1]*math.cos(math.radians(self.heading+a[0]))
-			py = self.current_position.getY() + a[1]*math.sin(math.radians(self.heading+a[0]))
+			#px = self.current_position.getX() + a[1]*math.cos(math.radians(self.heading+a[0]))
+			#py = self.current_position.getY() + a[1]*math.sin(math.radians(self.heading+a[0]))
+			px = self.robot_odometry.odom_with_slam.x + a[1]*math.cos(math.radians(self.robot_odometry.odom_with_slam.h+a[0]))
+			py = self.robot_odometry.odom_with_slam.y + a[1]*math.sin(math.radians(self.robot_odometry.odom_with_slam.h+a[0]))
 			self.virtualanchorNodePath[virtual_anchor_index].setPos(px,py,0.0)
 			virtual_anchor_index += 1
 
