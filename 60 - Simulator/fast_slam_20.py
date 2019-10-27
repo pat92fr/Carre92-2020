@@ -1,11 +1,15 @@
 # setup : particles = [Particle(N_LM) for _ in range(N_PARTICLE)]
 # loop :
+#  x = [x,y,yaw]
+#  u = [v,w]
+#  z = [2 x n] = [ [d1, d2, ...], [a1, a2, ...], [i1, i2, ...] ] d distance, a angle, i index of LM
 #  u = np.array([v, yawrate]).reshape(2, 1)
 #  xTrue, z, xDR, ud = observation(xTrue, xDR, u, RFID) <== to be changer because noise is simulated elsewhere
 #  particles = fast_slam2(particles, ud, z)
 #  xEst = calc_final_state(particles)
 
 import math
+import numpy as np
 
 # Parameters
 N_PARTICLE = 100  # number of particle
@@ -28,7 +32,7 @@ R = np.diag([1.0, np.deg2rad(20.0)]) ** 2
 # Particles
 class Particle:
 
-	def __init__(self):
+	def __init__(self,N_LM):
 		self.w = 1.0 / N_PARTICLE
 		self.x = 0.0
 		self.y = 0.0
@@ -265,6 +269,11 @@ def proposal_sampling(particle, z, Q_cov):
 	return particle
 
 
+
+#  Simulation parameter
+Q_sim = np.diag([0.3, np.deg2rad(2.0)]) ** 2
+R_sim = np.diag([0.5, np.deg2rad(10.0)]) ** 2
+OFFSET_YAW_RATE_NOISE = 0.01
 
 def observation(xTrue, xd, u, RFID):
     # calc true state

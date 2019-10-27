@@ -1,11 +1,13 @@
 import my_odometry
 
+
 import numpy as np
 import math
 import random
 
 from my_math import *
 from trackPR import *
+from fast_slam_20 import *
 
 
 # helper : select landmarks : return a list of anchor positions [ (x1,y1), (x2,y2), ..] from global anchor positions,
@@ -149,6 +151,12 @@ class robot_odometry:
 		self.error_x = 0.0
 		self.error_y = 0.0
 		self.error_h = 0.0
+
+		# test fast slam 2.0
+		N_LM = len(anchor_position)
+		particles = [Particle(N_LM) for _ in range(N_PARTICLE)]
+		xEst = np.zeros((STATE_SIZE, 1))  # SLAM estimation
+
 
 	def process(
 		self,
