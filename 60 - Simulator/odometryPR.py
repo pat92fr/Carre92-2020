@@ -1,12 +1,14 @@
 import my_odometry
 
+
 import numpy as np
 import math
 import random
 
 from my_math import *
 from trackPR import *
-
+#from fast_slam_20 import *
+from ekf_slam import *
 
 # helper : select landmarks : return a list of anchor positions [ (x1,y1), (x2,y2), ..] from global anchor positions,
 # each anchor of the list is in 'distance' range of current position (x,y)
@@ -150,6 +152,19 @@ class robot_odometry:
 		self.error_y = 0.0
 		self.error_h = 0.0
 
+		# test fast slam 2.0
+		# N_LM = len(anchor_position)
+		# particles = [Particle(N_LM) for _ in range(N_PARTICLE)]
+		# xEst = np.zeros((STATE_SIZE, 1))  # SLAM estimation
+		
+		# test ekf slam
+		# State Vector [x y yaw v]'
+		self.xEst = np.zeros((STATE_SIZE, 1)) # pose
+		self.xEst[0] = start_position[0]
+		self.xEst[1] = start_position[1]
+		self.xEst[2] = math.radians(start_position[2])
+		self.PEst = np.eye(STATE_SIZE) #
+
 	def process(
 		self,
 		dt,
@@ -286,4 +301,13 @@ class robot_odometry:
 		self.map = new_map
 		#print(self.map)
 		#print(len(self.map))
+
+		# ekf slam test
+		u = np.array([[actual_speed_ms, math.radians(actual_rotation_speed_dps)]]).T
+		z = np.zeros((0, 2))
+		for lm in self.landmarks:
+			zi = np.array( [lm[1], math.radians(lm[0])] )
+			z = np.vstack((z, zi))
+		self.xEst, self.PEst = ekf_slam(self.xEst, self.PEst, u, z, dt)
+		#print( self.xEst[0:STATE_SIZE] )
 

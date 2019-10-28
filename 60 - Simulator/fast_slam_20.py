@@ -1,11 +1,16 @@
 # setup : particles = [Particle(N_LM) for _ in range(N_PARTICLE)]
 # loop :
+#  angles in radians
+#  x = [x,y,yaw]
+#  u = [v,w]
+#  z = [2 x n] = [ [d1, d2, ...], [a1, a2, ...], [i1, i2, ...] ] d distance, a angle, i index of LM
 #  u = np.array([v, yawrate]).reshape(2, 1)
-#  xTrue, z, xDR, ud = observation(xTrue, xDR, u, RFID) <== to be changer because noise is simulated elsewhere
-#  particles = fast_slam2(particles, ud, z)
+#  z = from lidar (d,a) and association (..,i)
+#  particles = fast_slam2(particles, u, z)
 #  xEst = calc_final_state(particles)
 
 import math
+import numpy as np
 
 # Parameters
 N_PARTICLE = 100  # number of particle
@@ -28,7 +33,7 @@ R = np.diag([1.0, np.deg2rad(20.0)]) ** 2
 # Particles
 class Particle:
 
-	def __init__(self):
+	def __init__(self,N_LM):
 		self.w = 1.0 / N_PARTICLE
 		self.x = 0.0
 		self.y = 0.0
@@ -129,7 +134,6 @@ def motion_model(x, u):
 def update_with_observation(particles, z):
 	for iz in range(len(z[0, :])):
 		lmid = int(z[2, iz])
-
 		for ip in range(N_PARTICLE):
 			# new landmark
 			if abs(particles[ip].lm[lmid, 0]) <= 0.01:
@@ -138,10 +142,8 @@ def update_with_observation(particles, z):
 			else:
 				w = compute_weight(particles[ip], z[:, iz], Q)
 				particles[ip].w *= w
-
 				particles[ip] = update_landmark(particles[ip], z[:, iz], Q)
 				particles[ip] = proposal_sampling(particles[ip], z[:, iz], Q)
-
 	return particles
 
 
@@ -149,19 +151,14 @@ def add_new_lm(particle, z, Q_cov):
 	r = z[0]
 	b = z[1]
 	lm_id = int(z[2])
-
 	s = math.sin(pi_2_pi(particle.yaw + b))
 	c = math.cos(pi_2_pi(particle.yaw + b))
-
 	particle.lm[lm_id, 0] = particle.x + r * c
 	particle.lm[lm_id, 1] = particle.y + r * s
-
 	# covariance
 	Gz = np.array([[c, -r * s],
 				   [s, r * c]])
-
 	particle.lmP[2 * lm_id:2 * lm_id + 2] = Gz @ Q_cov @ Gz.T
-
 	return particle
 
 
@@ -266,33 +263,38 @@ def proposal_sampling(particle, z, Q_cov):
 
 
 
-def observation(xTrue, xd, u, RFID):
-    # calc true state
-    xTrue = motion_model(xTrue, u)
+# #  Simulation parameter
+# Q_sim = np.diag([0.3, np.deg2rad(2.0)]) ** 2
+# R_sim = np.diag([0.5, np.deg2rad(10.0)]) ** 2
+# OFFSET_YAW_RATE_NOISE = 0.01
 
-    # add noise to range observation
-    z = np.zeros((3, 0))
+# def observation(xTrue, xd, u, RFID):
+#     # calc true state
+#     xTrue = motion_model(xTrue, u)
 
-    for i in range(len(RFID[:, 0])):
+#     # add noise to range observation
+#     z = np.zeros((3, 0))
 
-        dx = RFID[i, 0] - xTrue[0, 0]
-        dy = RFID[i, 1] - xTrue[1, 0]
-        d = math.sqrt(dx ** 2 + dy ** 2)
-        angle = pi_2_pi(math.atan2(dy, dx) - xTrue[2, 0])
-        if d <= MAX_RANGE:
-            dn = d + np.random.randn() * Q_sim[0, 0] ** 0.5  # add noise
-            anglen = angle + np.random.randn() * Q_sim[1, 1] ** 0.5  # add noise
-            zi = np.array([dn, pi_2_pi(anglen), i]).reshape(3, 1)
-            z = np.hstack((z, zi))
+#     for i in range(len(RFID[:, 0])):
 
-    # add noise to input
-    ud1 = u[0, 0] + np.random.randn() * R_sim[0, 0] ** 0.5
-    ud2 = u[1, 0] + np.random.randn() * R_sim[1, 1] ** 0.5 + OFFSET_YAW_RATE_NOISE
-    ud = np.array([ud1, ud2]).reshape(2, 1)
+#         dx = RFID[i, 0] - xTrue[0, 0]
+#         dy = RFID[i, 1] - xTrue[1, 0]
+#         d = math.sqrt(dx ** 2 + dy ** 2)
+#         angle = pi_2_pi(math.atan2(dy, dx) - xTrue[2, 0])
+#         if d <= MAX_RANGE:
+#             dn = d + np.random.randn() * Q_sim[0, 0] ** 0.5  # add noise
+#             anglen = angle + np.random.randn() * Q_sim[1, 1] ** 0.5  # add noise
+#             zi = np.array([dn, pi_2_pi(anglen), i]).reshape(3, 1)
+#             z = np.hstack((z, zi))
 
-    xd = motion_model(xd, ud)
+#     # add noise to input
+#     ud1 = u[0, 0] + np.random.randn() * R_sim[0, 0] ** 0.5
+#     ud2 = u[1, 0] + np.random.randn() * R_sim[1, 1] ** 0.5 + OFFSET_YAW_RATE_NOISE
+#     ud = np.array([ud1, ud2]).reshape(2, 1)
 
-    return xTrue, z, xd, ud
+#     xd = motion_model(xd, ud)
+
+#     return xTrue, z, xd, ud
 
 
 

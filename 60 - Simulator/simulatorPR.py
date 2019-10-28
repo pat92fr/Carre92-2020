@@ -483,7 +483,7 @@ class Simulator(ShowBase):
 		self.robot_odometry.process(
 			dt,
 			self.actual_speed_ms + gaussian_noise(0.0,0.2),
-			self.actual_rotation_speed_dps + gaussian_noise(0.0,2.0), #+ gaussian_noise(self.gyro_bias,2.0),
+			self.actual_rotation_speed_dps + gaussian_noise(0.0,2.0) + gaussian_noise(self.gyro_bias,2.0),
 			self.lidar_distance
 		)
 
@@ -742,8 +742,8 @@ class Simulator(ShowBase):
 ## MAIN ########################################################################
 
 print("Init telemetry server...")
-tserver = telemetry_server("192.168.1.34", 7001)
-#tserver = telemetry_server("192.168.43.5", 7001)
+#tserver = telemetry_server("192.168.1.34", 7001)
+tserver = telemetry_server("192.168.43.5", 7001)
 #tserver = telemetry_server("192.168.1.11", 7001)
 print("Done!")
 
@@ -839,7 +839,12 @@ while not app.quit:
 
 			str(round(odom.error_x,3)) + ";" +
 			str(round(odom.error_y,3)) + ";" +
-			str(round(odom.error_h,3)) + "\n"
+			str(round(odom.error_h,3)) + ";" +
+
+
+			str(round(odom.xEst.item(0),3)) + ";" +
+			str(round(odom.xEst.item(1),3)) + ";" +
+			str(round(odom.xEst.item(2),3)) + "\n"			
 		)
 	data_logger.flush()
 
