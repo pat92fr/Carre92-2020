@@ -2,22 +2,25 @@
 
 name CircuitTest
 
-# Dimensions
-width 600
-height 400
-margins 0
-roadwidth 100
+# unitlength un meters
+UnitLength 1.0
 
-StartPoint  (400,100)
+# Dimensions
+width 6.5
+height 4.5
+margins 0
+roadwidth 1.1
+
+StartPoint  (4.1,1.1)
 InitialHeading 180
 
-Line  200
-Curve 100,180
-Line  200
-Curve 100,180
+Line  2.1
+Curve 1.1,180
+Line  2.1
+Curve 1.1,180
 
-StartLine 100
-EndLine   200
+StartLine 1.1
+EndLine   1.9
 
 
 
