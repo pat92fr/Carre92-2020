@@ -196,111 +196,111 @@ class robot_odometry:
 		#print(len(self.landmarks))
 
 
-		# stage 3 : spread particles around the current position given by the last odometry update (v,w)t X (x,y,h)t-1 => (x,y,h)t
-		# first save cos and sin of heading
-		hcos = math.cos(math.radians(self.odom_with_slam.h))
-		hsin = math.sin(math.radians(self.odom_with_slam.h))
-		# compute (x,y) of each particle
-		self.particles.clear()
-		for rpp in self.relative_particle_position:
-			pax = self.odom_with_slam.x + ( hcos*rpp[0] - hsin*rpp[1] )
-			pay = self.odom_with_slam.y + ( hsin*rpp[0] + hcos*rpp[1] )
-			pah = self.odom_with_slam.h + rpp[2]
-			self.particles.append( (pax,pay,pah) )
-		#print(self.particles)
+		# # stage 3 : spread particles around the current position given by the last odometry update (v,w)t X (x,y,h)t-1 => (x,y,h)t
+		# # first save cos and sin of heading
+		# hcos = math.cos(math.radians(self.odom_with_slam.h))
+		# hsin = math.sin(math.radians(self.odom_with_slam.h))
+		# # compute (x,y) of each particle
+		# self.particles.clear()
+		# for rpp in self.relative_particle_position:
+		# 	pax = self.odom_with_slam.x + ( hcos*rpp[0] - hsin*rpp[1] )
+		# 	pay = self.odom_with_slam.y + ( hsin*rpp[0] + hcos*rpp[1] )
+		# 	pah = self.odom_with_slam.h + rpp[2]
+		# 	self.particles.append( (pax,pay,pah) )
+		# #print(self.particles)
 
 
-		# stage #4 & #5 : compute the weight of particles and normalize
-		# list the plot plots in range in order to compare estimated plot (x,y) with ground truth plot position (x,y)
-		landmarks_xy_in_range = select_landmarks(self.odom_with_slam.x,self.odom_with_slam.y,10.0+2.0,self.map)
-		#print(plots_xy_in_range)
-		weights = []
-		weight_sum = 0.0
-		for pa in self.particles:
-			# for each particle (x,y,h), compute the landmark positions (px,py) from observation (angle,distance) and particule current position (x,y,h)
-			landmarks_xy = []
-			for obs in self.landmarks:
-				px = pa[0] + obs[1]*math.cos(math.radians(obs[0]+pa[2]))
-				py = pa[1] + obs[1]*math.sin(math.radians(obs[0]+pa[2]))
-				landmarks_xy.append( (px,py) )
-			#print(self.landmarks_xy)
-			weight = compute_one_particles_weight(landmarks_xy,landmarks_xy_in_range)
-			weight_sum += weight
-			weights.append(weight)
-		if weight_sum>0.0:
-			weights[:] = [w / weight_sum for w in weights]
-		self.weights = weights
-		#print(self.weights)
-		#print(weight_sum)
+		# # stage #4 & #5 : compute the weight of particles and normalize
+		# # list the plot plots in range in order to compare estimated plot (x,y) with ground truth plot position (x,y)
+		# landmarks_xy_in_range = select_landmarks(self.odom_with_slam.x,self.odom_with_slam.y,10.0+2.0,self.map)
+		# #print(plots_xy_in_range)
+		# weights = []
+		# weight_sum = 0.0
+		# for pa in self.particles:
+		# 	# for each particle (x,y,h), compute the landmark positions (px,py) from observation (angle,distance) and particule current position (x,y,h)
+		# 	landmarks_xy = []
+		# 	for obs in self.landmarks:
+		# 		px = pa[0] + obs[1]*math.cos(math.radians(obs[0]+pa[2]))
+		# 		py = pa[1] + obs[1]*math.sin(math.radians(obs[0]+pa[2]))
+		# 		landmarks_xy.append( (px,py) )
+		# 	#print(self.landmarks_xy)
+		# 	weight = compute_one_particles_weight(landmarks_xy,landmarks_xy_in_range)
+		# 	weight_sum += weight
+		# 	weights.append(weight)
+		# if weight_sum>0.0:
+		# 	weights[:] = [w / weight_sum for w in weights]
+		# self.weights = weights
+		# #print(self.weights)
+		# #print(weight_sum)
 
-		# TODO module le champ de particule 'nombre' et 'écartement' en fonction du poids précédent. Réduire le nombre de particules et serrer sur le centroide/odom lorsque l'estimation est bonne.
+		# # TODO module le champ de particule 'nombre' et 'écartement' en fonction du poids précédent. Réduire le nombre de particules et serrer sur le centroide/odom lorsque l'estimation est bonne.
 
-		# stage #6 : centroid and odometry correction
-		if weight_sum>0.0:
-			centroid_x = 0.0
-			centroid_y = 0.0
-			centroid_h = 0.0
-			for pa,w in zip(self.particles,self.weights):
-				centroid_x += pa[0]*w
-				centroid_y += pa[1]*w
-				centroid_h += pa[2]*w
-			# store error correction
-			self.error_x = self.odom_with_slam.x-centroid_x
-			self.error_y = self.odom_with_slam.y-centroid_y
-			self.error_h = self.odom_with_slam.h-centroid_h
-			#print("error x:" + str(round(self.odom_with_slam.x-centroid_x,2)))
-			#print("error y:" + str(round(self.odom_with_slam.y-centroid_y,2)))
-			#print("error h:" + str(round(self.odom_with_slam.h-centroid_h,2)))
-			#print("centroid x:" + str(round(self.centroid_x,2)) + "  y:" + str(round(self.centroid_y,2)) + "  h:" + str(round(self.centroid_h,2)) )
-			# update odometr according centroid using filter
-			self.odom_with_slam.x = centroid_x
-			self.odom_with_slam.y = centroid_y
-			self.odom_with_slam.h = centroid_h			
+		# # stage #6 : centroid and odometry correction
+		# if weight_sum>0.0:
+		# 	centroid_x = 0.0
+		# 	centroid_y = 0.0
+		# 	centroid_h = 0.0
+		# 	for pa,w in zip(self.particles,self.weights):
+		# 		centroid_x += pa[0]*w
+		# 		centroid_y += pa[1]*w
+		# 		centroid_h += pa[2]*w
+		# 	# store error correction
+		# 	self.error_x = self.odom_with_slam.x-centroid_x
+		# 	self.error_y = self.odom_with_slam.y-centroid_y
+		# 	self.error_h = self.odom_with_slam.h-centroid_h
+		# 	#print("error x:" + str(round(self.odom_with_slam.x-centroid_x,2)))
+		# 	#print("error y:" + str(round(self.odom_with_slam.y-centroid_y,2)))
+		# 	#print("error h:" + str(round(self.odom_with_slam.h-centroid_h,2)))
+		# 	#print("centroid x:" + str(round(self.centroid_x,2)) + "  y:" + str(round(self.centroid_y,2)) + "  h:" + str(round(self.centroid_h,2)) )
+		# 	# update odometr according centroid using filter
+		# 	self.odom_with_slam.x = centroid_x
+		# 	self.odom_with_slam.y = centroid_y
+		# 	self.odom_with_slam.h = centroid_h			
 
 
-		# stage #7 : update map
-		# from current position, compute position of landmarks : (x,y,h)position X (angle,distance)anchor ==> (x,y)anchor
-		landmarks_xy = []
-		for obs in self.landmarks:
-			#ax = position_x + a[1]*math.cos(math.radians(a[0]+heading)) # I'm using ground truth position for testing purpose, use odometry at the end
-			#ay = position_y + a[1]*math.sin(math.radians(a[0]+heading)) # I'm using ground truth position for testing purpose, use odometry at the end
-			ax = self.odom_with_slam.x + obs[1]*math.cos(math.radians(obs[0]+self.odom_with_slam.h)) # I'm using ground truth position for testing purpose, use odometry at the end
-			ay = self.odom_with_slam.y + obs[1]*math.sin(math.radians(obs[0]+self.odom_with_slam.h)) # I'm using ground truth position for testing purpose, use odometry at the end
-			landmarks_xy.append( (ax,ay) )
-		# merge with map
-		new_map = []
-		for a in landmarks_xy:
-			ax, ay = a # take each visible anchor, one by one
-			merged = False
-			for m in self.map:
-				mx, my, mw = m # take on anchor from map
-				# merge if possible
-				if compare_two_points_distance(mx,my,ax,ay,1.2): # tune max distance between anchor, tune number of iteration until locking anchor
-					# merge, tune rate
-					if mw < 100:
-						mx = mx*0.9 + ax*0.1
-						my = my*0.9 + ay*0.1
-					else:
-						mx = mx#mx*0.99 + ax*0.01 ##lock
-						my = my#my*0.99 + ay*0.01 ##lock
-					mw += 1
-					new_map.append( (mx,my,mw) )
-					merged = True
-			if not merged:
-				new_map.append( (ax,ay,0) )
-		# then add existing and untouched landmarks from previous map
-		for m in self.map:
-			mx, my, mw = m
-			exist_in_new_map = False
-			for n in new_map:
-				nx, ny, nw = n # take on anchor from new map
-				if compare_two_points_distance(mx,my,nx,ny,1.2):
-					exist_in_new_map = True
-			if not exist_in_new_map:
-				new_map.append( m )
-		self.map = new_map
-		#print(self.map)
-		#print(len(self.map))
+		# # stage #7 : update map
+		# # from current position, compute position of landmarks : (x,y,h)position X (angle,distance)anchor ==> (x,y)anchor
+		# landmarks_xy = []
+		# for obs in self.landmarks:
+		# 	#ax = position_x + a[1]*math.cos(math.radians(a[0]+heading)) # I'm using ground truth position for testing purpose, use odometry at the end
+		# 	#ay = position_y + a[1]*math.sin(math.radians(a[0]+heading)) # I'm using ground truth position for testing purpose, use odometry at the end
+		# 	ax = self.odom_with_slam.x + obs[1]*math.cos(math.radians(obs[0]+self.odom_with_slam.h)) # I'm using ground truth position for testing purpose, use odometry at the end
+		# 	ay = self.odom_with_slam.y + obs[1]*math.sin(math.radians(obs[0]+self.odom_with_slam.h)) # I'm using ground truth position for testing purpose, use odometry at the end
+		# 	landmarks_xy.append( (ax,ay) )
+		# # merge with map
+		# new_map = []
+		# for a in landmarks_xy:
+		# 	ax, ay = a # take each visible anchor, one by one
+		# 	merged = False
+		# 	for m in self.map:
+		# 		mx, my, mw = m # take on anchor from map
+		# 		# merge if possible
+		# 		if compare_two_points_distance(mx,my,ax,ay,1.2): # tune max distance between anchor, tune number of iteration until locking anchor
+		# 			# merge, tune rate
+		# 			if mw < 100:
+		# 				mx = mx*0.9 + ax*0.1
+		# 				my = my*0.9 + ay*0.1
+		# 			else:
+		# 				mx = mx#mx*0.99 + ax*0.01 ##lock
+		# 				my = my#my*0.99 + ay*0.01 ##lock
+		# 			mw += 1
+		# 			new_map.append( (mx,my,mw) )
+		# 			merged = True
+		# 	if not merged:
+		# 		new_map.append( (ax,ay,0) )
+		# # then add existing and untouched landmarks from previous map
+		# for m in self.map:
+		# 	mx, my, mw = m
+		# 	exist_in_new_map = False
+		# 	for n in new_map:
+		# 		nx, ny, nw = n # take on anchor from new map
+		# 		if compare_two_points_distance(mx,my,nx,ny,1.2):
+		# 			exist_in_new_map = True
+		# 	if not exist_in_new_map:
+		# 		new_map.append( m )
+		# self.map = new_map
+		# #print(self.map)
+		# #print(len(self.map))
 
 		# ekf slam test
 		u = np.array([[actual_speed_ms, math.radians(actual_rotation_speed_dps)]]).T
@@ -308,6 +308,7 @@ class robot_odometry:
 		for lm in self.landmarks:
 			zi = np.array( [lm[1], math.radians(lm[0])] )
 			z = np.vstack((z, zi))
+		#print(len(z))
 		self.xEst, self.PEst = ekf_slam(self.xEst, self.PEst, u, z, dt)
 		#print( self.xEst[0:STATE_SIZE] )
 

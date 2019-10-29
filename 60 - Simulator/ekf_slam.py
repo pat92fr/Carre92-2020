@@ -4,32 +4,25 @@ author: Atsushi Sakai (@Atsushi_twi)
 """
 
 import math
-
-import matplotlib.pyplot as plt
 import numpy as np
 
 # EKF state covariance
-Cx = np.diag([0.5, 0.5, np.deg2rad(30.0)]) ** 2
+#Cx = np.diag([0.5, 0.5, np.deg2rad(30.0)]) ** 2
+Cx = np.diag([0.5, 0.5, np.deg2rad(10.0)]) ** 2
 
-#  Simulation parameter
-Q_sim = np.diag([0.2, np.deg2rad(1.0)]) ** 2
-R_sim = np.diag([1.0, np.deg2rad(10.0)]) ** 2
-
-DT = 0.1  # time tick [s]
-SIM_TIME = 50.0  # simulation time [s]
-MAX_RANGE = 20.0  # maximum observation range
-M_DIST_TH = 2.0  # Threshold of Mahalanobis distance for data association.
+M_DIST_TH = 1.0  # Threshold of Mahalanobis distance for data association.
 STATE_SIZE = 3  # State size [x,y,yaw]
 LM_SIZE = 2  # LM state size [x,y]
-
-show_animation = True
-
 
 def ekf_slam(xEst, PEst, u, z, dt):
     # Predict
     S = STATE_SIZE
+    # update the current state
     xEst[0:S] = motion_model(xEst[0:S], u, dt)
+    # update the A matrix, the jacobian of the prediction model
     G, Fx = jacob_motion(xEst[0:S], u, dt)
+    # update Q : 
+    # update P : APA+Q
     PEst[0:S, 0:S] = G.T * PEst[0:S, 0:S] * G + Fx.T * Cx * Fx
     initP = np.eye(2)
 
@@ -47,8 +40,9 @@ def ekf_slam(xEst, PEst, u, z, dt):
             xEst = xAug
             PEst = PAug
         lm = get_landmark_position_from_state(xEst, minid)
+        # y = z-h
         y, S, H = calc_innovation(lm, xEst, PEst, z[iz, 0:2], minid)
-
+        # Kalman gain
         K = (PEst @ H.T) @ np.linalg.inv(S)
         xEst = xEst + (K @ y)
         PEst = (np.eye(len(xEst)) - (K @ H)) @ PEst
@@ -57,39 +51,6 @@ def ekf_slam(xEst, PEst, u, z, dt):
 
     return xEst, PEst
 
-
-def calc_input():
-    v = 1.0  # [m/s]
-    yawrate = 0.1  # [rad/s]
-    u = np.array([[v, yawrate]]).T
-    return u
-
-
-def observation(xTrue, xd, u, RFID):
-    xTrue = motion_model(xTrue, u)
-
-    # add noise to gps x-y
-    z = np.zeros((0, 3))
-
-    for i in range(len(RFID[:, 0])):
-
-        dx = RFID[i, 0] - xTrue[0, 0]
-        dy = RFID[i, 1] - xTrue[1, 0]
-        d = math.sqrt(dx ** 2 + dy ** 2)
-        angle = pi_2_pi(math.atan2(dy, dx) - xTrue[2, 0])
-        if d <= MAX_RANGE:
-            dn = d + np.random.randn() * Q_sim[0, 0] ** 0.5  # add noise
-            anglen = angle + np.random.randn() * Q_sim[1, 1] ** 0.5  # add noise
-            zi = np.array([dn, anglen, i])
-            z = np.vstack((z, zi))
-
-    # add noise to input
-    ud = np.array([[
-        u[0, 0] + np.random.randn() * R_sim[0, 0] ** 0.5,
-        u[1, 0] + np.random.randn() * R_sim[1, 1] ** 0.5]]).T
-
-    xd = motion_model(xd, ud)
-    return xTrue, z, xd, ud
 
 
 def motion_model(x, u, dt):
@@ -102,6 +63,9 @@ def motion_model(x, u, dt):
                   [0.0, dt]])
 
     x = (F @ x) + (B @ u)
+
+    x[2] = pi_2_pi(x[2]) # added by patrick
+
     return x
 
 
@@ -114,6 +78,7 @@ def jacob_motion(x, u, dt):
     Fx = np.hstack((np.eye(STATE_SIZE), np.zeros(
         (STATE_SIZE, LM_SIZE * calc_n_lm(x)))))
 
+    # The Jacobian of the prediction model: A 
     jF = np.array([[0.0, 0.0, -dt * u[0] * math.sin(x[2, 0])],
                    [0.0, 0.0, dt * u[0] * math.cos(x[2, 0])],
                    [0.0, 0.0, 0.0]])
@@ -196,62 +161,96 @@ def pi_2_pi(angle):
     return (angle + math.pi) % (2 * math.pi) - math.pi
 
 
-def main():
-    print(__file__ + " start!!")
+# def calc_input():
+#     v = 1.0  # [m/s]
+#     yawrate = 0.1  # [rad/s]
+#     u = np.array([[v, yawrate]]).T
+#     return u
 
-    time = 0.0
 
-    # RFID positions [x, y]
-    RFID = np.array([[10.0, -2.0],
-                     [15.0, 10.0],
-                     [3.0, 15.0],
-                     [-5.0, 20.0]])
+# def observation(xTrue, xd, u, RFID):
+#     xTrue = motion_model(xTrue, u)
 
-    # State Vector [x y yaw v]'
-    xEst = np.zeros((STATE_SIZE, 1))
-    xTrue = np.zeros((STATE_SIZE, 1))
-    PEst = np.eye(STATE_SIZE)
+#     # add noise to gps x-y
+#     z = np.zeros((0, 3))
 
-    xDR = np.zeros((STATE_SIZE, 1))  # Dead reckoning
+#     for i in range(len(RFID[:, 0])):
 
-    # history
-    hxEst = xEst
-    hxTrue = xTrue
-    hxDR = xTrue
+#         dx = RFID[i, 0] - xTrue[0, 0]
+#         dy = RFID[i, 1] - xTrue[1, 0]
+#         d = math.sqrt(dx ** 2 + dy ** 2)
+#         angle = pi_2_pi(math.atan2(dy, dx) - xTrue[2, 0])
+#         if d <= MAX_RANGE:
+#             dn = d + np.random.randn() * Q_sim[0, 0] ** 0.5  # add noise
+#             anglen = angle + np.random.randn() * Q_sim[1, 1] ** 0.5  # add noise
+#             zi = np.array([dn, anglen, i])
+#             z = np.vstack((z, zi))
 
-    while SIM_TIME >= time:
-        time += DT
-        u = calc_input()
+#     # add noise to input
+#     ud = np.array([[
+#         u[0, 0] + np.random.randn() * R_sim[0, 0] ** 0.5,
+#         u[1, 0] + np.random.randn() * R_sim[1, 1] ** 0.5]]).T
 
-        xTrue, z, xDR, ud = observation(xTrue, xDR, u, RFID)
+#     xd = motion_model(xd, ud)
+#     return xTrue, z, xd, ud
 
-        xEst, PEst = ekf_slam(xEst, PEst, ud, z)
 
-        x_state = xEst[0:STATE_SIZE]
+# def main():
+#     print(__file__ + " start!!")
 
-        # store data history
-        hxEst = np.hstack((hxEst, x_state))
-        hxDR = np.hstack((hxDR, xDR))
-        hxTrue = np.hstack((hxTrue, xTrue))
+#     time = 0.0
 
-        if show_animation:  # pragma: no cover
-            plt.cla()
+#     # RFID positions [x, y]
+#     RFID = np.array([[10.0, -2.0],
+#                      [15.0, 10.0],
+#                      [3.0, 15.0],
+#                      [-5.0, 20.0]])
 
-            plt.plot(RFID[:, 0], RFID[:, 1], "*k")
-            plt.plot(xEst[0], xEst[1], ".r")
+#     # State Vector [x y yaw v]'
+#     xEst = np.zeros((STATE_SIZE, 1))
+#     xTrue = np.zeros((STATE_SIZE, 1))
+#     PEst = np.eye(STATE_SIZE)
 
-            # plot landmark
-            for i in range(calc_n_lm(xEst)):
-                plt.plot(xEst[STATE_SIZE + i * 2],
-                         xEst[STATE_SIZE + i * 2 + 1], "xg")
+#     xDR = np.zeros((STATE_SIZE, 1))  # Dead reckoning
 
-            plt.plot(hxTrue[0, :],
-                     hxTrue[1, :], "-b")
-            plt.plot(hxDR[0, :],
-                     hxDR[1, :], "-k")
-            plt.plot(hxEst[0, :],
-                     hxEst[1, :], "-r")
-            plt.axis("equal")
-            plt.grid(True)
-            plt.pause(0.001)
+#     # history
+#     hxEst = xEst
+#     hxTrue = xTrue
+#     hxDR = xTrue
+
+#     while SIM_TIME >= time:
+#         time += DT
+#         u = calc_input()
+
+#         xTrue, z, xDR, ud = observation(xTrue, xDR, u, RFID)
+
+#         xEst, PEst = ekf_slam(xEst, PEst, ud, z)
+
+#         x_state = xEst[0:STATE_SIZE]
+
+#         # store data history
+#         hxEst = np.hstack((hxEst, x_state))
+#         hxDR = np.hstack((hxDR, xDR))
+#         hxTrue = np.hstack((hxTrue, xTrue))
+
+#         if show_animation:  # pragma: no cover
+#             plt.cla()
+
+#             plt.plot(RFID[:, 0], RFID[:, 1], "*k")
+#             plt.plot(xEst[0], xEst[1], ".r")
+
+#             # plot landmark
+#             for i in range(calc_n_lm(xEst)):
+#                 plt.plot(xEst[STATE_SIZE + i * 2],
+#                          xEst[STATE_SIZE + i * 2 + 1], "xg")
+
+#             plt.plot(hxTrue[0, :],
+#                      hxTrue[1, :], "-b")
+#             plt.plot(hxDR[0, :],
+#                      hxDR[1, :], "-k")
+#             plt.plot(hxEst[0, :],
+#                      hxEst[1, :], "-r")
+#             plt.axis("equal")
+#             plt.grid(True)
+#             plt.pause(0.001)
 

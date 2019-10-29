@@ -22,6 +22,7 @@ from my_math import *
 import controlPR
 import odometryPR
 from trackPR import *
+from ekf_slam import *
 
 import numpy as np
 import math
@@ -475,6 +476,7 @@ class Simulator(ShowBase):
 		# heading
 		self.last_heading = self.heading
 		self.heading = self.chassisNP.getH()+90.0
+		self.heading = (self.heading + 180.0) % 360.0 - 180.0
 		self.delta_heading = self.heading - self.last_heading
 		self.actual_rotation_speed_dps = self.delta_heading/dt
 		self.heading_text.setText('(' + str(round(self.current_position.getX(),1)) +',' + str(round(self.current_position.getY(),1)) +')   ' + str(int(self.heading))+ "deg")
@@ -482,25 +484,40 @@ class Simulator(ShowBase):
 		# odometry
 		self.robot_odometry.process(
 			dt,
-			self.actual_speed_ms + gaussian_noise(0.0,0.2),
-			self.actual_rotation_speed_dps + gaussian_noise(0.0,2.0) + gaussian_noise(self.gyro_bias,2.0),
+			self.actual_speed_ms + gaussian_noise(0.0,0.3),
+			self.actual_rotation_speed_dps + gaussian_noise(self.gyro_bias*1.0,3.0), #+ gaussian_noise(self.gyro_bias,2.0),
 			self.lidar_distance
 		)
+
+		# # display virtual anchor
+		# for va in self.virtualanchorNodePath :
+		# 	va.setPos(1000.0,1000.0,1000.0)
+		# virtual_anchor_index = 0
+		# for a in self.robot_odometry.landmarks :
+		# 	#px = self.current_position.getX() + a[1]*math.cos(math.radians(self.heading+a[0]))
+		# 	#py = self.current_position.getY() + a[1]*math.sin(math.radians(self.heading+a[0]))
+		# 	px = self.robot_odometry.odom_with_slam.x + a[1]*math.cos(math.radians(self.robot_odometry.odom_with_slam.h+a[0]))
+		# 	py = self.robot_odometry.odom_with_slam.y + a[1]*math.sin(math.radians(self.robot_odometry.odom_with_slam.h+a[0]))
+		# 	self.virtualanchorNodePath[virtual_anchor_index].setPos(px,py,0.0)
+		# 	virtual_anchor_index += 1
+
+		# display virtual odometry
+		#self.virtualodometryNodePath.setPos(self.robot_odometry.odom_with_slam.x,self.robot_odometry.odom_with_slam.y,0.0)
 
 		# display virtual anchor
 		for va in self.virtualanchorNodePath :
 			va.setPos(1000.0,1000.0,1000.0)
 		virtual_anchor_index = 0
-		for a in self.robot_odometry.landmarks :
-			#px = self.current_position.getX() + a[1]*math.cos(math.radians(self.heading+a[0]))
-			#py = self.current_position.getY() + a[1]*math.sin(math.radians(self.heading+a[0]))
-			px = self.robot_odometry.odom_with_slam.x + a[1]*math.cos(math.radians(self.robot_odometry.odom_with_slam.h+a[0]))
-			py = self.robot_odometry.odom_with_slam.y + a[1]*math.sin(math.radians(self.robot_odometry.odom_with_slam.h+a[0]))
+		for i in range(calc_n_lm(self.robot_odometry.xEst)):
+			px = self.robot_odometry.xEst[STATE_SIZE + i * 2]
+			py = self.robot_odometry.xEst[STATE_SIZE + i * 2 + 1]
+			#px = self.robot_odometry.odom_with_slam.x + a[1]*math.cos(math.radians(self.robot_odometry.odom_with_slam.h+a[0]))
+			#py = self.robot_odometry.odom_with_slam.y + a[1]*math.sin(math.radians(self.robot_odometry.odom_with_slam.h+a[0]))
 			self.virtualanchorNodePath[virtual_anchor_index].setPos(px,py,0.0)
 			virtual_anchor_index += 1
 
 		# display virtual odometry
-		self.virtualodometryNodePath.setPos(self.robot_odometry.odom_with_slam.x,self.robot_odometry.odom_with_slam.y,0.0)
+		self.virtualodometryNodePath.setPos(self.robot_odometry.xEst[0],self.robot_odometry.xEst[1],0.0)
 
 		# reset control state
 		self.engineForce = 0.0
@@ -653,7 +670,7 @@ class Simulator(ShowBase):
 
 		# load anchros (odometry)
 		self.virtualanchorNodePath = []
-		for index in range(20) :
+		for index in range(50) :
 			onp = self.loader.loadModel(panda_root_dir + media_dir + '/' + 'vplot.bam')
 			onp.setScale(2.0, 2.0, 2.0)
 			onp.setHpr(0.0, 90.0, 0.0)
@@ -742,8 +759,8 @@ class Simulator(ShowBase):
 ## MAIN ########################################################################
 
 print("Init telemetry server...")
-#tserver = telemetry_server("192.168.1.34", 7001)
-tserver = telemetry_server("192.168.43.5", 7001)
+tserver = telemetry_server("192.168.1.34", 7001)
+#tserver = telemetry_server("192.168.43.5", 7001)
 #tserver = telemetry_server("192.168.1.11", 7001)
 print("Done!")
 
