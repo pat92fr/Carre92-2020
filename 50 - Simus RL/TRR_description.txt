@@ -3,31 +3,32 @@
 name TRR
 
 # Dimensions
-width 5000
-height 500
-margins 100
-roadwidth 150
+UnitLength 1.0
+width 50
+height 5
+margins 1
+roadwidth 1.5
 
 # Origin of circuit description
-StartPoint  4750,75
+StartPoint  (47.5,0.75)
 InitialHeading 180
 
 # Start and end line
 # distances from start point
-StartLine 3500
-EndLine  4500
+StartLine 35.00
+EndLine  45.00
 
 # circuit description
-Line 4500
-Curve 175,180
-Line 1484
-Curve 271,45
-Curve 271,-45
-Curve 271,-45
-Curve 271,45
-Curve 271,45
-Curve 271,-45
-Curve 271,-45
-Curve 271,45
-Line 1484
-Curve 175,180
+Line 45.00
+Curve 1.75,180
+Line 14.84
+Curve 2.71,45
+Curve 2.71,-45
+Curve 2.71,-45
+Curve 2.71,45
+Curve 2.71,45
+Curve 2.71,-45
+Curve 2.71,-45
+Curve 2.71,45
+Line 14.84
+Curve 1.75,180
