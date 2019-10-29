@@ -17,8 +17,12 @@ LM_SIZE = 2  # LM state size [x,y]
 def ekf_slam(xEst, PEst, u, z, dt):
     # Predict
     S = STATE_SIZE
+    # update the current state
     xEst[0:S] = motion_model(xEst[0:S], u, dt)
+    # update the A matrix, the jacobian of the prediction model
     G, Fx = jacob_motion(xEst[0:S], u, dt)
+    # update Q : 
+    # update P : APA+Q
     PEst[0:S, 0:S] = G.T * PEst[0:S, 0:S] * G + Fx.T * Cx * Fx
     initP = np.eye(2)
 
@@ -36,8 +40,9 @@ def ekf_slam(xEst, PEst, u, z, dt):
             xEst = xAug
             PEst = PAug
         lm = get_landmark_position_from_state(xEst, minid)
+        # y = z-h
         y, S, H = calc_innovation(lm, xEst, PEst, z[iz, 0:2], minid)
-
+        # Kalman gain
         K = (PEst @ H.T) @ np.linalg.inv(S)
         xEst = xEst + (K @ y)
         PEst = (np.eye(len(xEst)) - (K @ H)) @ PEst
@@ -46,39 +51,6 @@ def ekf_slam(xEst, PEst, u, z, dt):
 
     return xEst, PEst
 
-
-# def calc_input():
-#     v = 1.0  # [m/s]
-#     yawrate = 0.1  # [rad/s]
-#     u = np.array([[v, yawrate]]).T
-#     return u
-
-
-# def observation(xTrue, xd, u, RFID):
-#     xTrue = motion_model(xTrue, u)
-
-#     # add noise to gps x-y
-#     z = np.zeros((0, 3))
-
-#     for i in range(len(RFID[:, 0])):
-
-#         dx = RFID[i, 0] - xTrue[0, 0]
-#         dy = RFID[i, 1] - xTrue[1, 0]
-#         d = math.sqrt(dx ** 2 + dy ** 2)
-#         angle = pi_2_pi(math.atan2(dy, dx) - xTrue[2, 0])
-#         if d <= MAX_RANGE:
-#             dn = d + np.random.randn() * Q_sim[0, 0] ** 0.5  # add noise
-#             anglen = angle + np.random.randn() * Q_sim[1, 1] ** 0.5  # add noise
-#             zi = np.array([dn, anglen, i])
-#             z = np.vstack((z, zi))
-
-#     # add noise to input
-#     ud = np.array([[
-#         u[0, 0] + np.random.randn() * R_sim[0, 0] ** 0.5,
-#         u[1, 0] + np.random.randn() * R_sim[1, 1] ** 0.5]]).T
-
-#     xd = motion_model(xd, ud)
-#     return xTrue, z, xd, ud
 
 
 def motion_model(x, u, dt):
@@ -106,6 +78,7 @@ def jacob_motion(x, u, dt):
     Fx = np.hstack((np.eye(STATE_SIZE), np.zeros(
         (STATE_SIZE, LM_SIZE * calc_n_lm(x)))))
 
+    # The Jacobian of the prediction model: A 
     jF = np.array([[0.0, 0.0, -dt * u[0] * math.sin(x[2, 0])],
                    [0.0, 0.0, dt * u[0] * math.cos(x[2, 0])],
                    [0.0, 0.0, 0.0]])
@@ -186,6 +159,40 @@ def jacob_h(q, delta, x, i):
 
 def pi_2_pi(angle):
     return (angle + math.pi) % (2 * math.pi) - math.pi
+
+
+# def calc_input():
+#     v = 1.0  # [m/s]
+#     yawrate = 0.1  # [rad/s]
+#     u = np.array([[v, yawrate]]).T
+#     return u
+
+
+# def observation(xTrue, xd, u, RFID):
+#     xTrue = motion_model(xTrue, u)
+
+#     # add noise to gps x-y
+#     z = np.zeros((0, 3))
+
+#     for i in range(len(RFID[:, 0])):
+
+#         dx = RFID[i, 0] - xTrue[0, 0]
+#         dy = RFID[i, 1] - xTrue[1, 0]
+#         d = math.sqrt(dx ** 2 + dy ** 2)
+#         angle = pi_2_pi(math.atan2(dy, dx) - xTrue[2, 0])
+#         if d <= MAX_RANGE:
+#             dn = d + np.random.randn() * Q_sim[0, 0] ** 0.5  # add noise
+#             anglen = angle + np.random.randn() * Q_sim[1, 1] ** 0.5  # add noise
+#             zi = np.array([dn, anglen, i])
+#             z = np.vstack((z, zi))
+
+#     # add noise to input
+#     ud = np.array([[
+#         u[0, 0] + np.random.randn() * R_sim[0, 0] ** 0.5,
+#         u[1, 0] + np.random.randn() * R_sim[1, 1] ** 0.5]]).T
+
+#     xd = motion_model(xd, ud)
+#     return xTrue, z, xd, ud
 
 
 # def main():
