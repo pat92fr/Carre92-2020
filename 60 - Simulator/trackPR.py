@@ -2,6 +2,7 @@
 
 # start position (x,y,heading)
 start_position = (-14.5,-4.0,90.0)
+arch_position = (-17.2, 22.5, 90.0)
 
 # anchor position
 anchor_position = [ 
