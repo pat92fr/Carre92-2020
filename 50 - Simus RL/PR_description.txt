@@ -15,7 +15,7 @@ InitialHeading 90
 
 # Start and end line
 # distances from start point
-StartLine 0.00
+StartLine 2.00
 EndLine 5.00
 
 # circuit description
