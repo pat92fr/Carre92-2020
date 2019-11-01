@@ -1,0 +1,45 @@
+##### Circuit Toulouse Robot Race
+
+name TRR
+
+# Dimensions
+UnitLength 1.0
+width 100
+height 100
+margins 1
+roadwidth 1.5
+
+# Origin of circuit description
+StartPoint (-15.0,0.0)
+InitialHeading 90
+
+# Start and end line
+# distances from start point
+StartLine 0.00
+EndLine 5.00
+
+# circuit description
+Line 10.00
+Curve 1.0,180
+Line 10.00
+Curve 1.0,-180
+Line 10.00
+Curve 1.0,90
+Line 21.20
+Curve 1.0,90
+Line 10.00
+Curve 1.0,90
+Line 15.00
+Curve 1.0,-180
+Line 15.00
+Curve 1.0,90
+Line 20.00
+Curve 1.0,180
+Line 15.00
+Curve 1.0,-180
+Line 15.00
+Curve 1.0,90
+Curve 1.0,45
+Line 30.00
+Curve 1.0,45
+Line 2.80
