@@ -738,7 +738,7 @@ if __name__ == '__main__':
   circuit.LoadDescription(circdesc_fname)
   circuit.GenerateSegments()
   model=Model(circuit, circuit.start_pt, circuit.start_heading)
-  circuit.CreateImage(zoom_factor=0.1)
+  circuit.CreateImage(zoom_factor=0.64) # pixel power of 2 from 32x32m
   display=pygame.display.set_mode((circuit.image.shape[0]+400, circuit.image.shape[1]))
 
   dashboard=DashBoard(circuit.image.shape, 400, circuit.image.shape[1], model.steer_max)
