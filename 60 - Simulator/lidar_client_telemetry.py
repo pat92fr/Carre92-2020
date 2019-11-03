@@ -30,7 +30,7 @@ def main():
     parser.add_argument("-d", "--duration", dest="duration",
                         help="max sampling duration in seconds", type=int, default=5)
     parser.add_argument("-i", "--ip", dest="host",
-                        help="IP address or host", type=str, default='192.168.1.34') #34
+                        help="IP address or host", type=str, default='192.168.1.26') #34
     parser.add_argument("--log",
                         help="Log telemetry in file", action="store_true")
     args = parser.parse_args()
