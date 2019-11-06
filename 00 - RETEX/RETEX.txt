@@ -1,10 +1,53 @@
+Pour la ligne et les courbes, et les obstacles :
+	* Accordéon en médium avec articulation en scotch (20 sections de 1.22 x 0.20 cm)
+	* Spare pour faire des obstacles
 
+==> Semaine prochaine : mardi midi.
+==> Se renseigner sur l'obention des places et des badges exposants
+
+Programme Robot-LIDAR pour le suivi 
+
+----
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* 20 nov : Algorithme de détection d'obstacle
+		25x3m
+
+* début juin : Algorithme de suivi de ligne
+* fin juin : DLVV et suivi de ligne 
+* d'ici la 
+
+
+
+* logger et analyser les erreurs
+* optimiser le réseau de neuronnes
+* modulaire
+* couplage des datasets et ajsutement en compétition
+
+
+* orientations techniques
+* organisation 
+* compétitions
+* divertissement (circuit)
 
 RETEX TRR19 Neunoeil (1) et (2) :
 ---------------------------------
 
 Points forts :
 --------------
+* Faciliter de mise en oeuvre de KERAS et tensor-flow (architeccture testée)
 * Look 1/10 piste "tunné"
 * Pneus mousse
 * Taille du chassis
