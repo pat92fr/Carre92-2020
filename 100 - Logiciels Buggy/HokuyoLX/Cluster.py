@@ -4,35 +4,75 @@ import numpy as np
 import math
 from sklearn.cluster import DBSCAN
 
-def clustering(raw_data):
-	# from polar to xy
-	xy_data = np.zeros(raw_data.shape)
-	for i in range(raw_data.shape[1]):
-		xy_data[0,i] = raw_data[1,i] * math.cos(raw_data[0,i])
-		xy_data[1,i] = raw_data[1,i] * math.sin(raw_data[0,i])
+# ax in radians
+# dx in meters
+# max distance in meters
+# return True if the distance between two point in polar coord is lesser than max_distance
+def is_near( a1, d1, a2, d2, max_distance ):
+	da = a1  - a2
+	d3 = d1 * math.sin(da)
+	d4 = abs( d1 * math.cos(da) - d2 )
+	return (d3*d3+d4*d4) < (max_distance*max_distance)
 
-	# DBSCAN
-	clustering = DBSCAN(eps=100, min_samples=2).fit(xy_data.T)
-	labels = clustering.labels_
-	###print(labels)
 
-	# Number of clusters in labels, ignoring noise if present.
-	n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-	n_noise_ = list(labels).count(-1)
-	print("clusters:"+str(n_clusters_) + "    noises:" + str(n_noise_))
+def clustering(raw_data,max_distance,min_points):
+	# count elements
+	m = raw_data.shape[1]
+	# create label array
+	labels = np.zeros(m)
+	# reset cluster id
+	k = 0
+	# process data
+	start_of_cluster_index = 0
+	for index in range(m-1):
+		if not is_near(
+			math.radians(raw_data[0,index]),
+			raw_data[1,index],
+			math.radians(raw_data[0,index+1]),
+			raw_data[1,index+1],
+			max_distance ):
+			# close current cluster
+			nb_points = index - start_of_cluster_index
+			# too small cluster
+			if nb_points < min_points:
+				for i in range(start_of_cluster_index,index+1):
+					labels[i] = -1		
+			else:
+				for i in range(start_of_cluster_index,index+1):
+					labels[i] = k
+				k += 1 # next cluster id
+				start_of_cluster_index = index+1 # next cluster start index
+	# finish
+	return raw_data, labels
 
-	#from xy to polar
-	polar_data = np.zeros(xy_data.shape)
-	for i in range(xy_data.shape[1]):
-		polar_data[0,i] = math.atan2(xy_data[1,i],xy_data[0,i])
-		polar_data[1,i] = math.sqrt(xy_data[0,i]*xy_data[0,i] + xy_data[1,i]*xy_data[1,i])
-	return polar_data, labels
+	# # from polar to xy
+	# xy_data = np.zeros(raw_data.shape)
+	# for i in range(raw_data.shape[1]):
+	# 	xy_data[0,i] = raw_data[1,i] * math.cos(raw_data[0,i])
+	# 	xy_data[1,i] = raw_data[1,i] * math.sin(raw_data[0,i])
+
+	# # DBSCAN
+	# clustering = DBSCAN(eps=100, min_samples=2).fit(xy_data.T)
+	# labels = clustering.labels_
+	# ###print(labels)
+
+	# # Number of clusters in labels, ignoring noise if present.
+	# n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+	# n_noise_ = list(labels).count(-1)
+	# print("clusters:"+str(n_clusters_) + "    noises:" + str(n_noise_))
+
+	# #from xy to polar
+	# polar_data = np.zeros(xy_data.shape)
+	# for i in range(xy_data.shape[1]):
+	# 	polar_data[0,i] = math.atan2(xy_data[1,i],xy_data[0,i])
+	# 	polar_data[1,i] = math.sqrt(xy_data[0,i]*xy_data[0,i] + xy_data[1,i]*xy_data[1,i])
+	# return polar_data, labels
 
 def run():
 
 	# load cloud.txt 
 	print("Loading file...")
-	file = open("cloud.txt", "r")
+	file = open("cloud1.txt", "r")
 	content = file.read()
 	file.close()
 	print("Done.")
@@ -46,14 +86,14 @@ def run():
 
 	plt.ion()
 	ax = plt.subplot(111, projection='polar')
-	plot_raw_data = ax.plot([], [], '.')[0]
+	plot_raw_data = ax.plot([], [], 'o')[0]
 	plot_cluster = []
 	for i in range(20):
 		plot_cluster.append( ax.plot([], [], '.')[0] )
 	colors = [plt.cm.Spectral(each)
           for each in np.linspace(0, 1, 20)]		
 	text = plt.text(0, 1, '', transform=ax.transAxes)
-	ax.set_rmax(10000)
+	ax.set_rmax(2000)
 	ax.grid(True)
 	plt.show()
 	for l in lines:
@@ -68,7 +108,7 @@ def run():
 			raw_data[1,i] = float(fields[i*2+2])
 		plot_raw_data.set_data(raw_data)
 		# processing raw data
-		cluster_data, cluster_labels = clustering(raw_data)
+		cluster_data, cluster_labels = clustering(raw_data,100.0,5)
 		for k in range(20):
 			if k == 19:
 				mask = (cluster_labels == -1)
