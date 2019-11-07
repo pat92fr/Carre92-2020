@@ -2,7 +2,7 @@
 from hokuyolx import HokuyoLX
 import matplotlib.pyplot as plt
 import math
-DMAX = 2000
+DMAX = 10000
 
 file = None
 
