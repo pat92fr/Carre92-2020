@@ -32,7 +32,7 @@ def run():
 
 	# load cloud.txt 
 	print("Loading file...")
-	file = open("cloud2.txt", "r")
+	file = open("cloud.txt", "r")
 	content = file.read()
 	file.close()
 	print("Done.")
