@@ -106,7 +106,7 @@ def run():
 	colors = [plt.cm.Spectral(each)
           for each in np.linspace(0, 1, 20)]		
 	text = plt.text(0, 1, '', transform=ax.transAxes)
-	ax.set_rmax(10000)
+	ax.set_rmax(4000)
 	ax.grid(True)
 	plt.show()
 	for l in lines:
