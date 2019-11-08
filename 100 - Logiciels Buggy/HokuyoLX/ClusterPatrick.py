@@ -85,7 +85,7 @@ def run():
 
 	# load cloud.txt 
 	print("Loading file...")
-	file = open("cloud5.txt", "r")
+	file = open("cloud6.txt", "r")
 	content = file.read()
 	file.close()
 	print("Done.")
@@ -121,7 +121,7 @@ def run():
 			raw_data[1,i] = float(fields[i*2+2])
 		###plot_raw_data.set_data(raw_data)
 		# processing raw data
-		cluster_data, cluster_labels = clustering(raw_data,50.0,5)
+		cluster_data, cluster_labels = clustering(raw_data,100.0,3)
 		for k in range(20):
 			if k == 19:
 				mask = (cluster_labels == -1)
