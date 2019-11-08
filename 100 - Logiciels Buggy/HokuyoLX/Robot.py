@@ -15,7 +15,7 @@ def update(laser, plot, text):
     plt.pause(0.001)
     file.write(str(timestamp)+";")
     for s in scan:
-        file.write(str(round(s[0], 2))+";"+str(round(s[1], 2))+";" )
+        file.write(str(round(s[0], 4))+";"+str(round(s[1], 2))+";" )
     file.write("\n")
     file.flush()
 

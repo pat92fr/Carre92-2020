@@ -20,28 +20,41 @@ def clustering(raw_data,max_distance,min_points):
 	m = raw_data.shape[1]
 	# create label array
 	labels = np.zeros(m)
-	# reset cluster id
+	# reset cluster class id
 	k = 0
-	# process data
+	# process each couple of points
 	start_of_cluster_index = 0
+	near_test = False
 	for index in range(m-1):
-		if not is_near(
-			math.radians(raw_data[0,index]),
+		# this point and the next one are in the same cluster ?
+		near_test = is_near(
+			raw_data[0,index],
 			raw_data[1,index],
-			math.radians(raw_data[0,index+1]),
+			raw_data[0,index+1],
 			raw_data[1,index+1],
-			max_distance ):
+			max_distance )
+		if not near_test:
+		# no, then
 			# close current cluster
-			nb_points = index - start_of_cluster_index
-			# too small cluster
+			nb_points = index - start_of_cluster_index + 1
+			# too small to be a cluster, is parasite
 			if nb_points < min_points:
-				for i in range(start_of_cluster_index,index+1):
-					labels[i] = -1		
+				labels[start_of_cluster_index:index+1] = -1		
+			# nice cluster is labeled
 			else:
-				for i in range(start_of_cluster_index,index+1):
-					labels[i] = k
-				k += 1 # next cluster id
-				start_of_cluster_index = index+1 # next cluster start index
+				labels[start_of_cluster_index:index+1] = k
+				k += 1 # next cluster class id
+			# next cluster start index
+			start_of_cluster_index = index+1 
+	# process last point
+	if not near_test:
+		labels[-1] = -1
+	else:
+		nb_points = (m-1) - start_of_cluster_index + 1
+		if nb_points < min_points:
+			labels[start_of_cluster_index:-1] = -1		
+		else:
+			labels[start_of_cluster_index:-1] = k		
 	# finish
 	return raw_data, labels
 
@@ -106,13 +119,13 @@ def run():
 		for i in range(data_size):
 			raw_data[0,i] = float(fields[i*2+1])
 			raw_data[1,i] = float(fields[i*2+2])
-		plot_raw_data.set_data(raw_data)
+		###plot_raw_data.set_data(raw_data)
 		# processing raw data
-		cluster_data, cluster_labels = clustering(raw_data,100.0,5)
+		cluster_data, cluster_labels = clustering(raw_data,50.0,5)
 		for k in range(20):
 			if k == 19:
 				mask = (cluster_labels == -1)
-				plot_cluster[k].set_data(cluster_data[:,mask])
+				###plot_cluster[k].set_data(cluster_data[:,mask])
 			else:
 				mask = (cluster_labels == k)
 				plot_cluster[k].set_data(cluster_data[:,mask])
