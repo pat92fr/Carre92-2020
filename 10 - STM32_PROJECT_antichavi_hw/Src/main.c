@@ -122,7 +122,7 @@ static uint32_t pwm_auto_thr = 1500;
 static uint32_t pwm_auto_dir = 1500;
 enum {MAIN_STATE_MANUAL, MAIN_STATE_AUTO_REQUEST, MAIN_STATE_AUTO_STARTUP, MAIN_STATE_AUTO };
 static uint32_t main_state = MAIN_STATE_MANUAL;
-//static uint32_t main_state_last = 0;
+static uint32_t main_state_last = 0;
 #define MANUAL_OVERRIDE_TIMEOUT 2000 //ms
 enum {RC_STATE_NONE,RC_STATE_OK};
 static uint32_t rc_state = RC_STATE_NONE;
@@ -451,33 +451,35 @@ int main(void)
 		//    see TIMER IT Callback
 		// compute actual heading and actual w speed using gyro
 		uint16_t duration_us = current_time_us-gyro_last_time_us;
-		if(duration_us>gyro_period_us)
+		if(duration_us>=gyro_period_us)
 		{
-			gyro_last_time_us = current_time_us;
+			gyro_last_time_us += gyro_period_us;
 			if( gyro_err == GYRO_OK)
 			{
 				HAL_GPIO_WritePin(LED4_GPIO_Port,LED4_Pin,GPIO_PIN_RESET);
 				float duration_s = (float)(duration_us)/1000000.0;
 				if(tachymeter_pulse_period_5us == 65535)
+				{
 					// robot is idle, auto calibrate bias
 					gyro_auto_calibrate(duration_s);
+
+									static int counter = 0;
+										if(((counter++)%416)==0)
+											HAL_Serial_Print(&ai_com,"duration_us=%d rate=%d mean=%d variance=%d bias=%d heading=%d dps=%d\r\n",
+													duration_us,
+													(int32_t)(gyro_get_rate()*1000.0),
+												(int32_t)(gyro_get_mean()*1000.0),
+												(int32_t)(gyro_get_variance()*1000.0),
+												(int32_t)(gyro_get_bias()*1000.0),
+												(int32_t)(gyro_get_heading()),
+												(int32_t)(gyro_get_dps()*1000.0)
+																  );
+				}
 				else
+				{
 					// robot is running
-					gyro_auto_calibrate(duration_s);
-					//gyro_update(duration_s);
-
-				static int counter = 0;
-					if(((counter++)%416)==0)
-						HAL_Serial_Print(&ai_com,"duration_us=%d rate=%d mean=%d variance=%d bias=%d heading=%d dps=%d\r\n",
-								duration_us,
-								(int32_t)(gyro_get_rate()*1000.0),
-							(int32_t)(gyro_get_mean()*1000.0),
-							(int32_t)(gyro_get_variance()*1000.0),
-							(int32_t)(gyro_get_bias()*1000.0),
-							(int32_t)(gyro_get_heading()),
-							(int32_t)(gyro_get_dps()*1000.0)
-											  );
-
+					gyro_update(duration_s);
+				}
 			}
 			else
 			{
@@ -522,6 +524,100 @@ int main(void)
 			if(start_countdown>0)
 				--start_countdown;
 		}
+		switch(main_state) // MAIN state machine
+		{
+		case MAIN_STATE_MANUAL:
+			{
+				// RC control servo
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_manual_thr); // RC always control THR at the moment
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,pwm_manual_dir); // RC control DIR
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwm_manual_dir); // RC control DIR
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);// default servo position
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,1500);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,1500);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_3,1500);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_4,1500);
+				HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
+
+				if( (pwm_manual_dir > 1850) && (pwm_manual_thr > 1450) && (pwm_manual_thr < 1550) ) // activation condition
+				{
+					main_state_last = current_time;
+					main_state = MAIN_STATE_AUTO_REQUEST;
+				}
+			}
+			break;
+		case MAIN_STATE_AUTO_REQUEST:
+			{
+				// RC control servo
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_manual_thr); // RC always control THR at the moment
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,pwm_manual_dir); // RC control DIR
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwm_manual_dir); // RC control DIR
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);// default servo position
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,1500);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,1500);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_3,1500);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_4,1500);
+				HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
+
+				if( (pwm_manual_dir > 1850) && (pwm_manual_thr > 1450) && (pwm_manual_thr < 1550) ) // activation condition
+				{
+					if(main_state_last+MANUAL_OVERRIDE_TIMEOUT<current_time)
+					{
+						main_state = MAIN_STATE_AUTO_STARTUP;
+					}
+				}
+				else
+				{
+					main_state = MAIN_STATE_MANUAL;
+				}
+			}
+			break;
+		case MAIN_STATE_AUTO_STARTUP:
+			{
+				// RC control servo
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_manual_thr); // RC always control THR at the moment
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,pwm_manual_dir); // RC control DIR
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwm_manual_dir); // RC control DIR
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);// default servo position
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,1500);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,1500);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_3,1500);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_4,1500);
+				HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
+
+				if( (pwm_manual_dir > 1450) && (pwm_manual_dir < 1550) && (pwm_manual_thr > 1450) && (pwm_manual_thr < 1550) ) // activation condition
+				{
+						main_state = MAIN_STATE_AUTO;
+				}
+			}
+			break;
+		case MAIN_STATE_AUTO:
+			{
+	//			// AI control servo
+	//			if(ai_mode==0)
+	//				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_manual_thr); // RC control THR when AUTO mode and IA halted
+	//			else if(ai_mode==1)
+	//				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_auto_thr); // AI control THR in AUTO mode and IA running
+	//			else // default manual
+	//				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_manual_thr);
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_auto_thr);
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,pwm_auto_dir); // AI control DIR
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwm_auto_dir); // AI control DIR
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);// default servo position
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,1500);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,1500);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_3,1500);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_4,1500);
+				HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
+				if( (pwm_manual_dir > 1650) || (pwm_manual_dir < 1350) || (pwm_manual_thr < 1350) ) // go back to MANUAL mode when DIR stick touched, when THR stick on brake/backward position
+				{
+					main_state = MAIN_STATE_MANUAL;
+				}
+			}
+			break;
+		}
+		//HAL_Delay(1);
+		timer_us_delay(1);
   }
   /* USER CODE END 3 */
 }
