@@ -14,7 +14,7 @@ def is_near( a1, d1, a2, d2, max_distance ):
 	d4 = abs( d1 * math.cos(da) - d2 )
 	return (d3*d3+d4*d4) < (max_distance*max_distance)
 
-
+# return a label (0..n cluster) for each point, or -1
 def clustering(raw_data,max_distance,min_points):
 	# count elements
 	m = raw_data.shape[1]
@@ -56,30 +56,44 @@ def clustering(raw_data,max_distance,min_points):
 		else:
 			labels[start_of_cluster_index:-1] = k		
 	# finish
-	return raw_data, labels
+	return labels
 
-	# # from polar to xy
-	# xy_data = np.zeros(raw_data.shape)
-	# for i in range(raw_data.shape[1]):
-	# 	xy_data[0,i] = raw_data[1,i] * math.cos(raw_data[0,i])
-	# 	xy_data[1,i] = raw_data[1,i] * math.sin(raw_data[0,i])
+# process each cluster of point cloud, and return the polar coord and the cluster id of landmarks
+def find_landmarks(raw_data,labels):
+	landmarks = []
+	lm_labels = []
+	#print(set(labels))
+	for k in set(labels):
+		if k != -1: #do not process noise
+			print(k)
+			# find points of the current cluster k
+			mask = (labels == k)
+			cluster_data = raw_data[:,mask]
+			print(cluster_data)
+			# compute cone angle
+			cone_angle = cluster_data[0,-1]-cluster_data[0,0]
+			print(math.degrees(cone_angle))
+			# compute nearest point from cluster
+			min_index = np.argmin(cluster_data, axis=1)
+			print(min_index)
+			nearest_point = cluster_data[:, min_index[1] ]
+			print(nearest_point)
+			# compute width
+			width = nearest_point[1] * math.sin(cone_angle)
+			
+			# accept cluster width < 200 mm and not clipped by dead angle lidar
+			if width<200.0 and abs(nearest_point[0])<math.radians(130):
+				landmarks.append( (nearest_point[0],nearest_point[1]+width/2.0) )
+				print(width)
+				lm_labels.append(int(k))
 
-	# # DBSCAN
-	# clustering = DBSCAN(eps=100, min_samples=2).fit(xy_data.T)
-	# labels = clustering.labels_
-	# ###print(labels)
 
-	# # Number of clusters in labels, ignoring noise if present.
-	# n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-	# n_noise_ = list(labels).count(-1)
-	# print("clusters:"+str(n_clusters_) + "    noises:" + str(n_noise_))
+			# suppress landmarks behind nearer landmark by sectors (+10°,-10°) from begin and end angle of nearest cluster
+			# debug du premier et dernier cluster
+			# check cluster counting point on left and right sides
 
-	# #from xy to polar
-	# polar_data = np.zeros(xy_data.shape)
-	# for i in range(xy_data.shape[1]):
-	# 	polar_data[0,i] = math.atan2(xy_data[1,i],xy_data[0,i])
-	# 	polar_data[1,i] = math.sqrt(xy_data[0,i]*xy_data[0,i] + xy_data[1,i]*xy_data[1,i])
-	# return polar_data, labels
+	return np.array(landmarks),lm_labels
+
 
 def run():
 
@@ -99,14 +113,15 @@ def run():
 
 	plt.ion()
 	ax = plt.subplot(111, projection='polar')
-	plot_raw_data = ax.plot([], [], 'o')[0]
+	plot_raw_data = ax.plot([], [], 'ro')[0]
 	plot_cluster = []
 	for i in range(20):
 		plot_cluster.append( ax.plot([], [], '.')[0] )
 	colors = [plt.cm.Spectral(each)
           for each in np.linspace(0, 1, 20)]		
+	plot_landmarks = ax.plot([], [], 'k*')[0]
 	text = plt.text(0, 1, '', transform=ax.transAxes)
-	ax.set_rmax(4000)
+	ax.set_rmax(5000)
 	ax.grid(True)
 	plt.show()
 	for l in lines:
@@ -119,24 +134,29 @@ def run():
 		for i in range(data_size):
 			raw_data[0,i] = float(fields[i*2+1])
 			raw_data[1,i] = float(fields[i*2+2])
-		###plot_raw_data.set_data(raw_data)
+		plot_raw_data.set_data(raw_data)
 		# processing raw data
-		cluster_data, cluster_labels = clustering(raw_data,100.0,3)
+		cluster_labels = clustering(raw_data,200.0,5)
+		landmarks, lm_labels = find_landmarks(raw_data,cluster_labels)
+		# display
 		for k in range(20):
 			if k == 19:
 				mask = (cluster_labels == -1)
-				###plot_cluster[k].set_data(cluster_data[:,mask])
+				empty = [ [], [] ]
+				plot_cluster[k].set_data(empty)
 			else:
-				mask = (cluster_labels == k)
-				plot_cluster[k].set_data(cluster_data[:,mask])
-			
-			
-
-		#plot_cluster.set_data(cluster_data)
+				if k in lm_labels:
+					mask = (cluster_labels == k)
+					plot_cluster[k].set_data(raw_data[:,mask])
+				else:
+					empty = [ [], [] ]
+					plot_cluster[k].set_data(empty)
+		if len(landmarks)>0:
+			plot_landmarks.set_data(landmarks.T)
 		text.set_text('t: %d' % timestamp)
 		# update plot
 		plt.draw()
-		plt.pause(0.010)
+		plt.pause(0.100)
 
 if __name__ == '__main__':
     run()
