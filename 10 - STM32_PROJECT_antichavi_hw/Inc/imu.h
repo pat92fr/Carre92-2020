@@ -26,12 +26,16 @@ void gyro_update(float duration_s); 	// retreive gyro measures thourgh I2C and d
 float gyro_get_dps(); 	// get the current rotation speed in degrees per second, ccw : positive dps, cw : negative dps
 void gyro_auto_calibrate(float duration_s);
 bool gyro_is_calibrated();
+float gyro_get_rate();
+float gyro_get_variance();
+float gyro_get_mean();
+float gyro_get_bias();
 
 void gyro_reset_heading();
 float gyro_get_heading();
 
-#define INIT_GYRO_BIAS 						0.0F	// unit : dps
-#define GYRO_AUTOCAL_VARIANCE_THRESHOLD 	0.040F	// unit : dps^2 (don't change this)
+#define INIT_GYRO_BIAS 						0.8F	// unit : dps
+#define GYRO_AUTOCAL_VARIANCE_THRESHOLD 	2.0F	// 0.04 unit : dps^2 (don't change this)
 #define GYRO_SENSITIVITY_CORRECTION 		0.98F // unit : %
 
 #ifdef __cplusplus

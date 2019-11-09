@@ -39,7 +39,7 @@
 // LED0 (HW=D2)
 // LED1 (HW=D1) = MANUAL/AUTO state
 // LED2 (HW=D3)
-// LED3 (HW=D4)
+// LED3 (HW=D4) = GYRO state
 // LED4 (HW=D5) = AI state
 // LED5 (HW=D6) = RC state
 
@@ -313,6 +313,7 @@ int main(void)
   HAL_GPIO_WritePin(LED5_GPIO_Port,LED5_Pin,GPIO_PIN_SET);
   uint32_t gyro_err = gyro_init();
   uint16_t gyro_last_time_us = timer_us_get();
+  HAL_Serial_Print(&ai_com, "gyro error:%d\r\n",gyro_err);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -452,15 +453,35 @@ int main(void)
 		uint16_t duration_us = current_time_us-gyro_last_time_us;
 		if(duration_us>gyro_period_us)
 		{
+			gyro_last_time_us = current_time_us;
 			if( gyro_err == GYRO_OK)
 			{
+				HAL_GPIO_WritePin(LED4_GPIO_Port,LED4_Pin,GPIO_PIN_RESET);
 				float duration_s = (float)(duration_us)/1000000.0;
 				if(tachymeter_pulse_period_5us == 65535)
 					// robot is idle, auto calibrate bias
 					gyro_auto_calibrate(duration_s);
 				else
 					// robot is running
-					gyro_update(duration_s);
+					gyro_auto_calibrate(duration_s);
+					//gyro_update(duration_s);
+
+				static int counter = 0;
+					if(((counter++)%416)==0)
+						HAL_Serial_Print(&ai_com,"duration_us=%d rate=%d mean=%d variance=%d bias=%d heading=%d dps=%d\r\n",
+								duration_us,
+								(int32_t)(gyro_get_rate()*1000.0),
+							(int32_t)(gyro_get_mean()*1000.0),
+							(int32_t)(gyro_get_variance()*1000.0),
+							(int32_t)(gyro_get_bias()*1000.0),
+							(int32_t)(gyro_get_heading()),
+							(int32_t)(gyro_get_dps()*1000.0)
+											  );
+
+			}
+			else
+			{
+				HAL_GPIO_WritePin(LED4_GPIO_Port,LED4_Pin,GPIO_PIN_SET);
 			}
 		}
 		// stop and wait protocol : command & response

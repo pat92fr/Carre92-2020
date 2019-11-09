@@ -13,7 +13,6 @@
 #include <math.h>
 
 
-#define IMU_TRACE
 //#define MinIMUv3
 #define MinIMUv5
 
@@ -21,9 +20,6 @@
 // globals ////////////////////////////////////////////////////////////////////
 
 extern I2C_HandleTypeDef hi2c1;
-#ifdef IMU_TRACE
-	static HAL_Serial_Handler ai_com;
-#endif
 
 // private functions //////////////////////////////////////////////////////////
 
@@ -78,6 +74,8 @@ void gyro_write_8bit_register(
 typedef struct {
 	int16_t raw_value; // 12-bit measure
 	float rate; //dps
+	float mean; //dps
+	float variance; //dps
 	float bias; // dps
 	float heading; //degres
 	uint32_t locked;
@@ -90,6 +88,26 @@ static ctx_gyro ctx;
 float gyro_get_dps()
 {
 	return ctx.rate - ctx.bias;
+}
+
+float gyro_get_rate()
+{
+	return ctx.rate;
+}
+
+float gyro_get_variance()
+{
+	return ctx.variance;
+}
+
+float gyro_get_mean()
+{
+	return ctx.mean;
+}
+
+float gyro_get_bias()
+{
+	return ctx.bias;
 }
 
 void gyro_reset_heading()
@@ -107,8 +125,6 @@ bool gyro_is_calibrated()
 	return ctx.locked >= 128;
 }
 
-float mean = 0.0;
-float variance = 0.0;
 float alpha_mean_update = 0.01;
 float alpha_variance_update = 0.05;
 float alpha_bias_update = 0.01;
@@ -117,12 +133,12 @@ void gyro_auto_calibrate(float duration_s)
 {
 	gyro_update(duration_s);
 	// update mean and variance
-	mean = alpha_mean_update *ctx.rate + (1.0-alpha_mean_update) * mean;
-	variance = alpha_variance_update * pow( ctx.rate-mean,2)  + (1.0-alpha_variance_update) * variance;
+	ctx.mean = alpha_mean_update *ctx.rate + (1.0-alpha_mean_update) * ctx.mean;
+	ctx.variance = alpha_variance_update * pow( ctx.rate-ctx.mean,2)  + (1.0-alpha_variance_update) * ctx.variance;
 	// if mean stable, update bias
-	if(variance<GYRO_AUTOCAL_VARIANCE_THRESHOLD)
+	if(ctx.variance<GYRO_AUTOCAL_VARIANCE_THRESHOLD)
 	{
-		ctx.bias = alpha_bias_update*mean + (1.0-alpha_bias_update)* ctx.bias;
+		ctx.bias = alpha_bias_update*ctx.mean + (1.0-alpha_bias_update)* ctx.bias;
 		if(ctx.locked<1024)
 			++ctx.locked;
 	}
@@ -131,8 +147,8 @@ void gyro_auto_calibrate(float duration_s)
 		if(((counter++)%500)==0)
 			HAL_Serial_Print(&ai_com,"dps=%d m=%d v=%d b=%d h=%d rate=%d\r\n",
 				(int32_t)(ctx.rate*1000.0),
-				(int32_t)(mean*1000.0),
-				(int32_t)(variance*1000.0),
+				(int32_t)(ctx.mean*1000.0),
+				(int32_t)(ctx.variance*1000.0),
 				(int32_t)(ctx.bias*1000.0),
 				(int32_t)(ctx.heading),
 				(int32_t)(gyro_get_dps()*1000.0)
@@ -185,6 +201,8 @@ uint32_t gyro_init()
 {
 	ctx.raw_value = 0;
 	ctx.rate = 0.0;
+	ctx.mean = 0.0;
+	ctx.variance = 0.0;
 	ctx.bias = INIT_GYRO_BIAS;
 	ctx.heading = 0.0f;
 	ctx.locked = 0;
