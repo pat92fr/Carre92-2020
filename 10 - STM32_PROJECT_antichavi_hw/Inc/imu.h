@@ -35,8 +35,10 @@ void gyro_reset_heading();
 float gyro_get_heading();
 
 #define INIT_GYRO_BIAS 						0.8F	// unit : dps
-#define GYRO_AUTOCAL_VARIANCE_THRESHOLD 	2.0F	// 0.04 unit : dps^2 (don't change this)
+#define GYRO_AUTOCAL_VARIANCE_THRESHOLD 	0.050F	// unit : dps^2 (don't change this)
 #define GYRO_SENSITIVITY_CORRECTION 		0.98F // unit : %
+
+/// note : variance is beater in FAST MODE I2C.
 
 #ifdef __cplusplus
 }
