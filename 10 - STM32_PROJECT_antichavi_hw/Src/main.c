@@ -122,7 +122,7 @@ static uint32_t pwm_auto_thr = 1500;
 static uint32_t pwm_auto_dir = 1500;
 enum {MAIN_STATE_MANUAL, MAIN_STATE_AUTO_REQUEST, MAIN_STATE_AUTO_STARTUP, MAIN_STATE_AUTO };
 static uint32_t main_state = MAIN_STATE_MANUAL;
-static uint32_t main_state_last = 0;
+//static uint32_t main_state_last = 0;
 #define MANUAL_OVERRIDE_TIMEOUT 2000 //ms
 enum {RC_STATE_NONE,RC_STATE_OK};
 static uint32_t rc_state = RC_STATE_NONE;
@@ -131,22 +131,22 @@ enum {AI_STATE_NONE,AI_STATE_OK};
 static uint32_t ai_state = AI_STATE_NONE;
 #define AI_TIMEOUT 100 //ms
 enum {LIDAR_STATE_NONE,LIDAR_STATE_OK};
-static uint32_t lidar_state = LIDAR_STATE_NONE;
+//static uint32_t lidar_state = LIDAR_STATE_NONE;
 #define LIDAR_TIMEOUT 100 //ms
-static uint32_t telemetry_stop_and_wait = 0; // stop = 0, query last value = 1
 static int32_t lidar_distance_gauche = -1; // cm
 static int32_t lidar_distance_droit = -1;
 static int32_t lidar_distance_haut = -1;
-static int32_t lidar_strength_gauche = -1;
-static int32_t lidar_strength_droit = -1;
-static int32_t lidar_strength_haut = -1;
-static int32_t lidar_temp_gauche = -1;
-static int32_t lidar_temp_droit = -1;
-static int32_t lidar_temp_haut = -1;
+//static int32_t lidar_strength_gauche = -1;
+//static int32_t lidar_strength_droit = -1;
+//static int32_t lidar_strength_haut = -1;
+//static int32_t lidar_temp_gauche = -1;
+//static int32_t lidar_temp_droit = -1;
+//static int32_t lidar_temp_haut = -1;
 static int32_t tachymeter_pulse_period_5us = -1;
-static int32_t start_countdown = 0;
 static int32_t tachymeter_pulse_count = 0;
-static uint16_t gyro_period_us = 1000;
+static uint16_t gyro_period_us = 2404; // GYRO ODR = 416Hz
+static int32_t start_countdown = 0;
+static uint32_t telemetry_stop_and_wait = 0; // stop = 0, query last value = 1
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -452,13 +452,16 @@ int main(void)
 		uint16_t duration_us = current_time_us-gyro_last_time_us;
 		if(duration_us>gyro_period_us)
 		{
-			float duration_s = (float)(duration_us)/1000000.0;
-			if(tachymeter_pulse_period_5us == 65535)
-				// robot is idle, auto calibrate bias
-				gyro_auto_calibrate(duration_s);
-			else
-				// robot is running
-				gyro_update(duration_s);
+			if( gyro_err == GYRO_OK)
+			{
+				float duration_s = (float)(duration_us)/1000000.0;
+				if(tachymeter_pulse_period_5us == 65535)
+					// robot is idle, auto calibrate bias
+					gyro_auto_calibrate(duration_s);
+				else
+					// robot is running
+					gyro_update(duration_s);
+			}
 		}
 		// stop and wait protocol : command & response
 			// return distance (total) ==> AI compute v
@@ -473,10 +476,7 @@ int main(void)
 			//tfminiplus_getLastAcquisition(MINILIDAR_DROIT, &lidar_distance_droit, &lidar_strength_droit, &lidar_temp_droit);
 			//tfminiplus_getLastAcquisition(MINILIDAR_HAUT, &lidar_distance_haut, &lidar_strength_haut, &lidar_temp_haut);
 
-
-
-
-			// build telemetry frame
+			// format telemetry frame
 			uint32_t telemetry_manual_dir = pwm_to_int(pwm_manual_dir);
 			uint32_t telemetry_manual_thr = pwm_to_int(pwm_manual_thr);
 			uint32_t telemetry_auto_dir = pwm_to_int(pwm_auto_dir);
@@ -501,22 +501,6 @@ int main(void)
 			if(start_countdown>0)
 				--start_countdown;
 		}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   }
   /* USER CODE END 3 */
 }
