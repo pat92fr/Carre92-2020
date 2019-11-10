@@ -133,18 +133,19 @@ static uint32_t ai_state = AI_STATE_NONE;
 enum {LIDAR_STATE_NONE,LIDAR_STATE_OK};
 //static uint32_t lidar_state = LIDAR_STATE_NONE;
 #define LIDAR_TIMEOUT 100 //ms
-static int32_t lidar_distance_gauche = -1; // cm
-static int32_t lidar_distance_droit = -1;
-static int32_t lidar_distance_haut = -1;
+//static int32_t lidar_distance_gauche = -1; // cm
+//static int32_t lidar_distance_droit = -1;
+//static int32_t lidar_distance_haut = -1;
 //static int32_t lidar_strength_gauche = -1;
 //static int32_t lidar_strength_droit = -1;
 //static int32_t lidar_strength_haut = -1;
 //static int32_t lidar_temp_gauche = -1;
 //static int32_t lidar_temp_droit = -1;
 //static int32_t lidar_temp_haut = -1;
-static int32_t tachymeter_pulse_period_5us = -1;
-static int32_t tachymeter_pulse_count = 0;
-static uint16_t gyro_period_us = 2404; // GYRO ODR = 416Hz
+static uint32_t tachymeter_pulse_period_5us = 0xFFFF;
+static uint64_t tachymeter_pulse_count = 0;
+#define GYRO_PERIOD_US 2404 // GYRO ODR = 416Hz
+#define GYRO_ODR 416 // GYRO ODR = 416Hz
 static int32_t start_countdown = 0;
 static uint32_t telemetry_stop_and_wait = 0; // stop = 0, query last value = 1
 /* USER CODE END PV */
@@ -446,34 +447,35 @@ int main(void)
 		if(RC4_last_time + 650 > HAL_GetTick())
 			tachymeter_pulse_period_5us = RC4_period;
 		else
-			tachymeter_pulse_period_5us = 65535;
+			tachymeter_pulse_period_5us = 0xFFFF;
 		// compute actual distance
 		//    see TIMER IT Callback
 		// compute actual heading and actual w speed using gyro
 		uint16_t duration_us = current_time_us-gyro_last_time_us;
-		if(duration_us>=gyro_period_us)
+		if(duration_us>=GYRO_PERIOD_US)
 		{
-			gyro_last_time_us += gyro_period_us;
+			gyro_last_time_us += GYRO_PERIOD_US;
 			if( gyro_err == GYRO_OK)
 			{
 				HAL_GPIO_WritePin(LED4_GPIO_Port,LED4_Pin,GPIO_PIN_RESET);
 				float duration_s = (float)(duration_us)/1000000.0;
-				if(tachymeter_pulse_period_5us == 65535)
+				if(tachymeter_pulse_period_5us == 0xFFFF)
 				{
 					// robot is idle, auto calibrate bias
 					gyro_auto_calibrate(duration_s);
-
-									static int counter = 0;
-										if(((counter++)%416)==0)
-											HAL_Serial_Print(&ai_com,"duration_us=%d rate=%d mean=%d variance=%d bias=%d heading=%d dps=%d\r\n",
-													duration_us,
-													(int32_t)(gyro_get_rate()*1000.0),
-												(int32_t)(gyro_get_mean()*1000.0),
-												(int32_t)(gyro_get_variance()*1000.0),
-												(int32_t)(gyro_get_bias()*1000.0),
-												(int32_t)(gyro_get_heading()),
-												(int32_t)(gyro_get_dps()*1000.0)
-																  );
+#ifdef IMU_TRACE
+					static int counter = 0;
+					if(((counter++)%GYRO_ODR)==0) // one trace per second
+						HAL_Serial_Print(&ai_com,"duration_us=%d rate=%d mean=%d variance=%d bias=%d heading=%d dps=%d\r\n",
+							duration_us,
+							(int32_t)(gyro_get_rate()*1000.0),
+							(int32_t)(gyro_get_mean()*1000.0),
+							(int32_t)(gyro_get_variance()*1000.0),
+							(int32_t)(gyro_get_bias()*1000.0),
+							(int32_t)(gyro_get_heading()),
+							(int32_t)(gyro_get_dps()*1000.0)
+						);
+#endif
 				}
 				else
 				{
@@ -505,22 +507,29 @@ int main(void)
 			uint32_t telemetry_auto_dir = pwm_to_int(pwm_auto_dir);
 			uint32_t telemetry_auto_thr = pwm_to_int(pwm_auto_thr);
 
-			// send telemetry frame
+			// STM32 replies to AI by a frame that contains informations :
+			//  - all PWM values [0..255] for DIR/THR from RC and from AI
+			//  - modes AUTO/MANUAL from RC and from AI
+			//  - start countdown
+			//  - actual absolute/total distance in pulses (1/4 main gear rotation)
+			//  - actual heading in 0.001 degrees
+			//  - actual instant x speed in 5us period of last pulses (1/4 main gear rotation)
+			//  - actual instant w speed in 0.001 dps
+			//  - actual gyro bias in 0.001 dps
 			HAL_Serial_Print(&ai_com, "%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d\r\n",
-					lidar_distance_gauche,
-					lidar_distance_droit,
-					lidar_distance_haut,
-					tachymeter_pulse_period_5us,
-					telemetry_manual_dir,
-					telemetry_manual_thr,
-					telemetry_auto_dir,
-					telemetry_auto_thr,
-					start_countdown,
-					tachymeter_pulse_count,
-					(int32_t)gyro_get_dps(),
-					(int32_t)gyro_get_heading()
-
-				);
+				telemetry_manual_dir,
+				telemetry_manual_thr,
+				telemetry_auto_dir,
+				telemetry_auto_thr,
+				main_state,
+				ai_mode,
+				start_countdown,
+				tachymeter_pulse_count,
+				(int32_t)(gyro_get_heading()*1000.0),
+				tachymeter_pulse_period_5us,
+				(int32_t)(gyro_get_dps()*1000.0),
+				(int32_t)(gyro_get_bias()*1000.0)
+			);
 			if(start_countdown>0)
 				--start_countdown;
 		}
@@ -531,12 +540,14 @@ int main(void)
 				// RC control servo
 				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_manual_thr); // RC always control THR at the moment
 				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,pwm_manual_dir); // RC control DIR
-				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwm_manual_dir); // RC control DIR
-				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);// default servo position
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,1500);// default servo position
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);
+
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,1500);
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,1500);
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_3,1500);
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_4,1500);
+
 				HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
 
 				if( (pwm_manual_dir > 1850) && (pwm_manual_thr > 1450) && (pwm_manual_thr < 1550) ) // activation condition
@@ -551,12 +562,14 @@ int main(void)
 				// RC control servo
 				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_manual_thr); // RC always control THR at the moment
 				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,pwm_manual_dir); // RC control DIR
-				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwm_manual_dir); // RC control DIR
-				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);// default servo position
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,1500);// default servo position
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);
+
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,1500);
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,1500);
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_3,1500);
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_4,1500);
+
 				HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
 
 				if( (pwm_manual_dir > 1850) && (pwm_manual_thr > 1450) && (pwm_manual_thr < 1550) ) // activation condition
@@ -577,12 +590,14 @@ int main(void)
 				// RC control servo
 				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_manual_thr); // RC always control THR at the moment
 				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,pwm_manual_dir); // RC control DIR
-				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwm_manual_dir); // RC control DIR
-				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);// default servo position
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,1500);// default servo position
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);
+
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,1500);
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,1500);
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_3,1500);
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_4,1500);
+
 				HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
 
 				if( (pwm_manual_dir > 1450) && (pwm_manual_dir < 1550) && (pwm_manual_thr > 1450) && (pwm_manual_thr < 1550) ) // activation condition
@@ -593,22 +608,26 @@ int main(void)
 			break;
 		case MAIN_STATE_AUTO:
 			{
-	//			// AI control servo
-	//			if(ai_mode==0)
-	//				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_manual_thr); // RC control THR when AUTO mode and IA halted
-	//			else if(ai_mode==1)
-	//				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_auto_thr); // AI control THR in AUTO mode and IA running
-	//			else // default manual
-	//				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_manual_thr);
-				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_auto_thr);
-				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,pwm_auto_dir); // AI control DIR
-				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwm_auto_dir); // AI control DIR
-				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);// default servo position
+				if(ai_mode==0)
+				{
+					__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,1500); // default servo position
+					__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,1500); // default servo position
+				}
+				else
+				{
+					__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_auto_thr); // AI control THR
+					__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,pwm_auto_dir); // AI control DIR
+				}
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,1500); // default servo position
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);
+
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,1500);
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,1500);
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_3,1500);
 				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_4,1500);
+
 				HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
+
 				if( (pwm_manual_dir > 1650) || (pwm_manual_dir < 1350) || (pwm_manual_thr < 1350) ) // go back to MANUAL mode when DIR stick touched, when THR stick on brake/backward position
 				{
 					main_state = MAIN_STATE_MANUAL;
