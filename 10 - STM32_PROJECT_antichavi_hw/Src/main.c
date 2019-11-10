@@ -516,7 +516,9 @@ int main(void)
 			//  - actual instant x speed in 5us period of last pulses (1/4 main gear rotation)
 			//  - actual instant w speed in 0.001 dps
 			//  - actual gyro bias in 0.001 dps
-			HAL_Serial_Print(&ai_com, "%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d\r\n",
+			static uint32_t rep_counter = 0;
+			HAL_Serial_Print(&ai_com, "%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d\r\n",
+				rep_counter++,
 				telemetry_manual_dir,
 				telemetry_manual_thr,
 				telemetry_auto_dir,
@@ -524,7 +526,7 @@ int main(void)
 				main_state,
 				ai_mode,
 				start_countdown,
-				tachymeter_pulse_count,
+				(uint32_t)tachymeter_pulse_count,
 				(int32_t)(gyro_get_heading()*1000.0),
 				tachymeter_pulse_period_5us,
 				(int32_t)(gyro_get_dps()*1000.0),
