@@ -104,8 +104,8 @@ class SimulatorPR(Simulator):
 ## MAIN ########################################################################
 
 print("Init telemetry server...")
-tserver = telemetry_server("192.168.1.34", 7001)
-#tserver = telemetry_server("192.168.43.5", 7001)
+#tserver = telemetry_server("192.168.1.34", 7001)
+tserver = telemetry_server("192.168.43.5", 7001)
 #tserver = telemetry_server("192.168.1.11", 7001)
 print("Done!")
 
@@ -163,17 +163,27 @@ while not app.quit:
 	#if counter % 2 == 0:
 		msg = str(int(counter/2)) + ';'
 
-		#msg += str( float(app.robot_controller.target_speed_ms) ) + ';'
-		msg += str( float(app.robot_controller.current_speed_ms) ) + ';'
-		msg += str( float(app.robot_controller.actual_speed_ms) ) + ';' 
-		msg += str( float(app.robot_controller.actual_speed_error_ms) ) + ';'
-		msg += str( float(app.throttle) ) + ';' 
+		# #msg += str( float(app.robot_controller.target_speed_ms) ) + ';'
+		# msg += str( float(app.robot_controller.current_speed_ms) ) + ';'
+		# msg += str( float(app.robot_controller.actual_speed_ms) ) + ';' 
+		# msg += str( float(app.robot_controller.actual_speed_error_ms) ) + ';'
+		# msg += str( float(app.throttle) ) + ';' 
 
-		msg += str( float(app.robot_controller.actual_lidar_direction_error) ) + ';'
-		msg += str( float(app.robot_controller.pid_wall) ) + ';'
-		msg += str( float(app.robot_controller.ratio_ai*10) ) + ';' 
-		msg += str( float(app.steering) ) 
-		
+		# msg += str( float(app.robot_controller.actual_lidar_direction_error) ) + ';'
+		# msg += str( float(app.robot_controller.pid_wall) ) + ';'
+		# msg += str( float(app.robot_controller.ratio_ai*10) ) + ';' 
+		# msg += str( float(app.steering) ) 
+
+		for lm in app.robot_odometry.landmarks:
+			msg += str( float(lm[0]) ) + ';'
+			msg += str( float(lm[1]) ) + ';'
+##		for i in range(calc_n_lm(app.robot_odometry.xEst)):
+##			x = app.robot_odometry.xEst[STATE_SIZE + i * 2]
+##			y = app.robot_odometry.xEst[STATE_SIZE + i * 2 + 1]
+##			msg += str( float(x) ) + ';'
+##			msg += str( float(y) ) + ';'
+		msg += "0"
+
 		msg_length = str(len(msg)).ljust(4)
 		tserver.sendTelemetry(msg_length)
 		tserver.sendTelemetry(msg)
