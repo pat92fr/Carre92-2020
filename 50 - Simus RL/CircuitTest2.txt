@@ -1,0 +1,46 @@
+##### Circuit Test
+
+name CircuitTest
+
+# unitlength un meters
+UnitLength 1.0
+
+# Dimensions
+width 13
+height 13
+margins 0
+roadwidth 1.6
+
+StartPoint  (7.25,11)
+InitialHeading 0
+
+Line  3.183
+Curve 0.9,90
+Line 1
+Curve 0.9,90
+Line 2.5
+Curve 0.85,-180
+Line 2.5
+Curve 0.9,90
+Line 3
+Curve 1.0,180
+Line  1
+Curve 1,-90
+Line 0.5
+Curve 1,-90
+Line 1
+Curve 0.9, 135
+Line 5
+Curve 0.9,45
+Line 3.96
+Curve 0.9,180
+Line 3
+Curve 0.9, -180
+Line 3
+Curve 0.9,90
+
+StartLine 0
+EndLine   1
+
+
+
