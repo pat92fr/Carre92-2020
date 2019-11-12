@@ -448,7 +448,7 @@ int main(void)
 			tachymeter_pulse_period_5us = RC4_period;
 		else
 			tachymeter_pulse_period_5us = 0xFFFF;
-		// compute actual distance
+		// compute actual distance at 416Hz
 		//    see TIMER IT Callback
 		// compute actual heading and actual w speed using gyro
 		uint16_t duration_us = current_time_us-gyro_last_time_us;
@@ -610,15 +610,15 @@ int main(void)
 			break;
 		case MAIN_STATE_AUTO:
 			{
-				if(ai_mode==0)
+				if(ai_mode==1)
 				{
-					__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,1500); // default servo position
-					__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,1500); // default servo position
+						__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_auto_thr); // AI control THR
+						__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,pwm_auto_dir); // AI control DIR
 				}
 				else
 				{
-					__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,pwm_auto_thr); // AI control THR
-					__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,pwm_auto_dir); // AI control DIR
+					__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_1,1500); // default servo position
+					__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_2,1500); // default servo position
 				}
 				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,1500); // default servo position
 				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_4,1500);
