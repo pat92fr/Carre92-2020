@@ -147,7 +147,6 @@ static uint64_t tachymeter_pulse_count = 0;
 #define GYRO_PERIOD_US 2404 // GYRO ODR = 416Hz
 #define GYRO_ODR 416 // GYRO ODR = 416Hz
 static int32_t start_countdown = 0;
-static uint32_t telemetry_stop_and_wait = 0; // stop = 0, query last value = 1
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -319,12 +318,13 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint32_t last_time_100Hz = HAL_GetTick();
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		uint32_t current_time = HAL_GetTick();
+		uint32_t current_time_ms = HAL_GetTick();
 		uint16_t current_time_us = timer_us_get();
 		switch(rc_state) // RC state machine
 		{
@@ -333,7 +333,7 @@ int main(void)
 				HAL_GPIO_WritePin(LED5_GPIO_Port,LED5_Pin,GPIO_PIN_SET);
 				pwm_manual_thr = 1500;
 				pwm_manual_dir = 1500;
-			    if((RC1_last_time+RC_TIMEOUT>current_time) && (RC2_last_time+RC_TIMEOUT>current_time))
+			    if((RC1_last_time+RC_TIMEOUT>current_time_ms) && (RC2_last_time+RC_TIMEOUT>current_time_ms))
 			    {
 			    	rc_state = RC_STATE_OK;
 			    }
@@ -344,7 +344,7 @@ int main(void)
 				HAL_GPIO_WritePin(LED5_GPIO_Port,LED5_Pin,GPIO_PIN_RESET);
 				pwm_manual_thr = RC1_duty_cycle;
 				pwm_manual_dir = RC2_duty_cycle;
-			    if((RC1_last_time+RC_TIMEOUT<current_time) || (RC2_last_time+RC_TIMEOUT<current_time))
+			    if((RC1_last_time+RC_TIMEOUT<current_time_ms) || (RC2_last_time+RC_TIMEOUT<current_time_ms))
 			    {
 			    	rc_state = RC_STATE_NONE;
 			    }
@@ -400,8 +400,7 @@ int main(void)
 						data = atoi(tab_args[2]); // decode value
 						ai_mode = data;
 						// AI frame complete, update AI health state and send back telemetry frame
-						com_last_time = current_time;
-						telemetry_stop_and_wait = 1;
+						com_last_time = current_time_ms;
 			        }
 					com_position = 0; // reset recv buffer
 				}
@@ -422,7 +421,7 @@ int main(void)
 				HAL_GPIO_WritePin(LED4_GPIO_Port,LED4_Pin,GPIO_PIN_SET);
 				pwm_ai_thr = 1500;
 				pwm_ai_dir = 1500;
-			    if(com_last_time+AI_TIMEOUT>current_time)
+			    if(com_last_time+AI_TIMEOUT>current_time_ms)
 			    {
 			    	ai_state = AI_STATE_OK;
 			    }
@@ -432,7 +431,7 @@ int main(void)
 			{
 				HAL_GPIO_WritePin(LED4_GPIO_Port,LED4_Pin,GPIO_PIN_RESET);
 				// values from ai_com process
-			    if(com_last_time+AI_TIMEOUT<current_time)
+			    if(com_last_time+AI_TIMEOUT<current_time_ms)
 			    {
 			    	ai_state = AI_STATE_NONE;
 			    }
@@ -488,24 +487,18 @@ int main(void)
 				HAL_GPIO_WritePin(LED4_GPIO_Port,LED4_Pin,GPIO_PIN_SET);
 			}
 		}
-		// stop and wait protocol : command & response
+		// 100Hz communication to AI
 			// return distance (total) ==> AI compute v
 			// return heading (total) ==> AI compute w and dtheta
 			// return current instant v,w (sampling by AI)
-		if(telemetry_stop_and_wait==1) // TELEMETRY (simple stop & wait protocol)
+		uint32_t duration_ms = current_time_ms-last_time_100Hz;
+		if(duration_ms>=10)
 		{
-			telemetry_stop_and_wait=0; // reset stop and wait protocol
-
+			last_time_100Hz+=10;
 			// query last lidar values
 			//tfminiplus_getLastAcquisition(MINILIDAR_GAUCHE, &lidar_distance_gauche, &lidar_strength_gauche, &lidar_temp_gauche);
 			//tfminiplus_getLastAcquisition(MINILIDAR_DROIT, &lidar_distance_droit, &lidar_strength_droit, &lidar_temp_droit);
 			//tfminiplus_getLastAcquisition(MINILIDAR_HAUT, &lidar_distance_haut, &lidar_strength_haut, &lidar_temp_haut);
-
-			// format telemetry frame
-			uint32_t telemetry_manual_dir = pwm_to_int(pwm_manual_dir);
-			uint32_t telemetry_manual_thr = pwm_to_int(pwm_manual_thr);
-			uint32_t telemetry_auto_dir = pwm_to_int(pwm_auto_dir);
-			uint32_t telemetry_auto_thr = pwm_to_int(pwm_auto_thr);
 
 			// STM32 replies to AI by a frame that contains informations :
 			//  - all PWM values [0..255] for DIR/THR from RC and from AI
@@ -519,10 +512,10 @@ int main(void)
 			static uint32_t rep_counter = 0;
 			HAL_Serial_Print(&ai_com, "%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d\r\n",
 				rep_counter++,
-				telemetry_manual_dir,
-				telemetry_manual_thr,
-				telemetry_auto_dir,
-				telemetry_auto_thr,
+				pwm_to_int(pwm_manual_dir),
+				pwm_to_int(pwm_manual_thr),
+				pwm_to_int(pwm_auto_dir),
+				pwm_to_int(pwm_auto_thr),
 				main_state,
 				ai_mode,
 				start_countdown,
@@ -554,7 +547,7 @@ int main(void)
 
 				if( (pwm_manual_dir > 1850) && (pwm_manual_thr > 1450) && (pwm_manual_thr < 1550) ) // activation condition
 				{
-					main_state_last = current_time;
+					main_state_last = current_time_ms;
 					main_state = MAIN_STATE_AUTO_REQUEST;
 				}
 			}
@@ -576,7 +569,7 @@ int main(void)
 
 				if( (pwm_manual_dir > 1850) && (pwm_manual_thr > 1450) && (pwm_manual_thr < 1550) ) // activation condition
 				{
-					if(main_state_last+MANUAL_OVERRIDE_TIMEOUT<current_time)
+					if(main_state_last+MANUAL_OVERRIDE_TIMEOUT<current_time_ms)
 					{
 						main_state = MAIN_STATE_AUTO_STARTUP;
 					}
