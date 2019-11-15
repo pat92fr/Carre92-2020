@@ -43,15 +43,15 @@ class stm32_proxy:
 			self.gyro_dps = float(fields[11])/1000.0
 			self.gyro_bias = float(fields[12])/1000.0		
 			self.last_time_receive = time.time_ns()//1000000
-			print(self.last_time_receive)	
+			###print(self.last_time_receive)	
 			# metric values
 			magnet_count = 4.0
 			gear_ratio = 2.64
 			wheel_perimeter = 0.204
 			self.total_distance_m = round( ( float(self.tachymeter_pulse_count) / magnet_count ) / gear_ratio * wheel_perimeter, 2)
 			self.actual_speed_mps = round( 200000.0/(magnet_count*float(self.tachymeter_pulse_period_5us+1)) / gear_ratio * wheel_perimeter, 2)
-			print("distance:" + str(round(self.total_distance_m,1)) + "m" )
-			print("speed:" + str(round(self.actual_speed_mps,1)) + "mps" )
+			###print("distance:" + str(round(self.total_distance_m,1)) + "m" )
+			###print("speed:" + str(round(self.actual_speed_mps,1)) + "mps" )
 
               
 	def send(self,steering,throttle,mode):
