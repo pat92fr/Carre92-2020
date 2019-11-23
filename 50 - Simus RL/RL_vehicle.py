@@ -5,6 +5,10 @@
 import agent_vehicle as agent
 import RL
 import pygame
+import time
+#DEBUG
+import numpy as np
+
 
 color_red=(255,0,0)
 color_green=(0,255,0)
@@ -21,22 +25,27 @@ color_segment=(121,248,248)
 
 circdesc_fname="CircuitTest2.txt"
 
-agent=agent.Agent(circdesc_fname)
-agent.DrawInit(zoom_factor=0.25)
-agent.DrawBackground()
-
-rl=RL.RL(agent)
-rl.LoadTables("RLTables.npz")
-
-traj=rl.GreedyTrajectory(agent.init_discrete_state, 1000)
-agent.DrawTrajectory(color="green", point_size=3)
-
 
 ###########################################################
 ###########################################################
 if __name__ == '__main__':
+
+  agent=agent.Agent(circdesc_fname)
+  agent.DrawInit(zoom_factor=0.5)
+  agent.DrawBackground()
+
+  rl=RL.RL(agent)
+  rl.LoadTables("RLTables.npz")
+
+  agent_context=agent.NewContext(agent.init_discrete_state)
+  rl.GreedyTrajectory(agent_context, 1000)
+  agent.DrawTrajectory(agent_context, color="green", point_size=3)
+
+  print(rl.QTable.shape)
+  
   Cont=True
   auto_mode=False
+  print
   while Cont:
     for event in pygame.event.get():
       if event.type == pygame.QUIT:
@@ -53,11 +62,19 @@ if __name__ == '__main__':
           pass
 
     if auto_mode:
-      rl.Learn(agent.init_discrete_state, 10000, 100, nb_retries=5)
-      rl.SaveTables("RLTable.npz")
+      rl.Learn(agent.init_discrete_state, 1000, 10, nb_retries=10000)
+      rl.SaveTables("RLTables.npz")
+      print("#################################################")
       print("MaxQtable={}".format(rl.MaxQTable()))
+      print("MaxQtable start={}".format(rl.QTable[agent.init_discrete_state].max()))
+      for i in range(rl.QTable.shape[0]-2, 0, -100):
+        print("MaxQtable {}={}".format(i, rl.QTable[i].max()))
+      x=np.nonzero(rl.QTable == 0)
+      print("{}/{} null elements in QTable, {:.3f}% filled".format(x[0].size, rl.QTable.size, 1-x[0].size/rl.QTable.size/100))
       agent.DrawBackground()
-      traj=rl.GreedyTrajectory(agent.init_discrete_state, 1000)
-      agent.DrawTrajectory(color="green", point_size=3)
+      agent_context=agent.NewContext(agent.init_discrete_state)
+      rl.GreedyTrajectory(agent_context, 1000)
+      agent.DrawTrajectory(agent_context, color="green", point_size=3)
+      #time.sleep(3)
       
   pygame.quit()
