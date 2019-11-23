@@ -453,6 +453,7 @@ class Circuit():
       self.cl_segments[i].SetOdo(odo)
       odo+=self.cl_segments[i].length
     self.length=odo
+    print("Circuit length={}".format(odo))
 
   #########################################################
   def AreWallCrossed(self, segment):
@@ -668,14 +669,17 @@ class Circuit():
     """
     if s_index is not None:
       s=self.cl_segments[s_index]
+      s_idx=s_index
     else:
       s=self.cl_segments[0]
+      s_idx=0
       # search segment for odometrie=odo
       for i, seg in enumerate(self.cl_segments):
         if odo>=seg.odo and odo < seg.odo+seg.length:
           s=seg
           s_idx=i
           break
+      
           
     p=s.p1+(odo-s.odo)*s.u+width*s.normal
 

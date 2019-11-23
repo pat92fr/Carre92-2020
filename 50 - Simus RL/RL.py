@@ -9,7 +9,7 @@ import numpy as np
 #######################################
 class RL():
   # parameters
-  learning_rate=0.25
+  learning_rate=0.2
   actualisation_rate=1
   explore_rate=0.02
   
@@ -43,8 +43,8 @@ class RL():
 
   #####################################
   def UpdateQTable(self, states_list, actions_list, rewards_list):
+    #print("Rfin={:.2f} ".format(rewards_list[-1]), end="")
     traj_len=len(rewards_list)
-    
     # if non fail trajectory, we are able to compute next Q value 
     # for last state
     if len(states_list)>traj_len:
@@ -58,10 +58,21 @@ class RL():
       state=states_list[i]
       action=actions_list[i]
       reward=rewards_list[i]
+      # if i<3:
+        # print("i={} NextQ={:.2f}/Rw={:.2f} ".format(i, next_Q, reward), end="")
+      # if i >= traj_len-4:
+        # print("i={} NextQ={:.2f}/Rw={:.2f} ".format(i, next_Q, reward), end="")
       # update Q table
       self.QTable[state+action]=(1-self.learning_rate)*self.QTable[state+action]+self.learning_rate*(reward+self.actualisation_rate*next_Q)
       next_Q=self.MaxQTableForState(state)
-    
+      # if i == traj_len-1:
+        # print("")
+        # print("  "+str(self.QTable[state])+" max="+str(next_Q))
+      # if i == 0:
+        # print("  Initial State="+str(states_list[i]))
+    # print("")
+    #print("NextQ="+str(next_Q))
+
   #####################################
   def SaveTables(self, fname):
     np.savez(fname, QTable=self.QTable, FailTable=self.FailTable)
@@ -69,7 +80,7 @@ class RL():
   #####################################
   def LoadTables(self, fname):
     if os.path.isfile(fname):
-      load=np.loadz(fname)
+      load=np.load(fname)
       self.QTable=load["QTable"]
       self.FailTable=load["FailTable"]
     
@@ -105,6 +116,7 @@ class RL():
     """
     QTableForState=self.QTable[state]
     max=QTableForState.max()
+    #print("GreedyAction : max="+str(max))
     if max == 0:
       # random action if no best action
       non_fail_actions=self.NonFailActions(state)
@@ -121,24 +133,22 @@ class RL():
     return action
     
   #####################################
-  def GreedyTrajectory(self, state, max_steps):
-    # reset agent state
-    self.agent.ResetDiscreteState(state)
-    
+  def GreedyTrajectory(self, agent_context, max_steps):
+    state=agent_context.GetState()
+    #print("GreedyTrajectory : state="+str(state))
     for step_index in range(max_steps):
+      #print("{} : max={}".format(step_index, self.QTable[state].max()))
       action=self.GreedyAction(state)
       if self.QTable[state+action] < 0:
         # dead end in this state
         break
-      [reward, fail, done]=self.agent.DiscreteStep(action)
+      [state, reward, fail, done]=self.agent.Step(agent_context, action)
       if reward <= 0:
         break
       if fail:
         break
       if done:
         break
-      # update state after action step
-      state=self.agent.GetDiscreteState()
     
   #####################################
   def Learn(self, start_state, nb_steps, nb_epoch, nb_retries=1):
@@ -156,21 +166,20 @@ class RL():
     # start learning
     for epoch in range(nb_epoch):
       state=start_state
-      self.agent.ResetDiscreteState(start_state)
-      states_list=[start_state]
+      states_list=[state]
       actions_list=[]
       rewards_list=[]
-      
-      old_state=state
+      agent_context=self.agent.NewContext(state)
       
       # first trajectory of retries batch uses greedy actions
       force_random_action=False
       # Retries batch
       for retry_count in range(0, nb_retries):
+        #print("Learn : retry_count="+str(retry_count))
         done=False
         fail=False
         step_count=0
-        while not (done or fail): 
+        while not (done or fail or step_count>=nb_steps): 
           step_count+=1
           # Action
           if force_random_action or (random.random() < self.explore_rate):
@@ -180,30 +189,23 @@ class RL():
             action=self.GreedyAction(state)
 
           # agent step with action
-          [reward, fail, done]=self.agent.DiscreteStep(action)
+          [state, reward, fail, done]=self.agent.Step(agent_context, action)
           
           # save new data in tables
           actions_list.append(action)
           rewards_list.append(reward)
           
-          if fail:
-            # stop iterations
-            break
-          else:
-            # get next state
-            state=self.agent.GetDiscreteState()
+          if not fail:
+            # add last state to list as it is a non fail state
             states_list.append(state)
-            if done or step_count >= nb_steps:
-              break
           
         # end of retry
         
         # draw agent trajectory
-        self.agent.DrawTrajectory(color="red")
+        #self.agent.DrawTrajectory(agent_context, color="red", point_size=1)
         
         # update QTable.
         self.UpdateQTable(states_list, actions_list, rewards_list)
-
         if fail :
           # fail ? try with modifying last action
           # retry with last step 
@@ -212,11 +214,22 @@ class RL():
             force_random_action = True
             fail=False
             # cut randomly the trajectory
-            cutted_len=len(rewards_list)-1 #random.randrange(int(len(reward_list)/2), len(reward_list))
-            states_list=states_list[0:cutted_len+1]
+            if len(rewards_list) > 4:
+              cutted_len=len(rewards_list)-3 
+            elif len(rewards_list) > 3:
+              cutted_len=len(rewards_list)-2 
+            else:
+              cutted_len=len(rewards_list)-1 
+            #cutted_len=random.randrange(int(len(rewards_list)*2/3), len(rewards_list))
+            states_list=states_list[0:(cutted_len+1)] # states_list contains last state
             actions_list=actions_list[0:cutted_len]
             rewards_list=rewards_list[0:cutted_len]
-            self.agent.CutTrajectory(cutted_len)
-            # set agent state backward
-            self.agent.SetDiscreteState(states_list[-1])
-          
+            state=states_list[-1]
+            self.agent.CutContextTrajectory(agent_context, cutted_len)
+        if done:
+          # No need to retry
+          break
+      
+      print("Epoch {}/{}".format(epoch, nb_epoch), end="\r")
+      # end of epoch
+    print("")

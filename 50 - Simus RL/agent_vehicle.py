@@ -9,14 +9,37 @@ import circuit
 import pygame
 
 #######################################
+#######################################
+class AgentContext():
+  #####################################
+  def __init__(self, init_state, discrete_init_state):
+    self.state=init_state
+    self.discrete_state=discrete_init_state
+    self.states_list=[init_state]
+  #####################################
+  def GetState(self):
+    return self.discrete_state
+  #####################################
+  def AddState(self, state, discrete_state):
+    self.states_list.append(state)
+    self.state=state
+    self.discrete_state=discrete_state
+  #####################################
+  def CutTrajectory(self, len):
+    self.states_list=self.states_list[0:len+1]
+    self.state=self.states_list[-1]
+  
+#######################################
+#######################################
 class Agent():
   """
   Agent class adapted for vehicle
   """
   # discretisation parameters
-  odo_discretisation_resol=0.1
-  width_discretisation_steps=17
-  heading_discretisation_steps=10
+  odo_discretisation_resol=0.025
+  #width_discretisation_steps=17
+  width_discretisation_resol=0.025
+  heading_discretisation_steps=36
   throttle_discretisation_steps=11
   steering_discretisation_steps=11
 
@@ -51,6 +74,7 @@ class Agent():
   steer_max=math.pi/2
   
   # Reward parameters
+  bonus_reward=10000000
   penalty=-10000
   
   #####################################
@@ -65,8 +89,8 @@ class Agent():
     # self.pygame_display=pygame.display.set_mode((self.circuit.image.shape[0], self.circuit.image.shape[1]))
 
     # circuit discretisation
-    self.discrete_state_odo_size=math.ceil(self.circuit.length/self.odo_discretisation_resol)
-    self.discrete_state_width_size=self.width_discretisation_steps
+    self.discrete_state_odo_size=math.ceil(self.circuit.length/self.odo_discretisation_resol)+1
+    self.discrete_state_width_size=math.ceil(self.circuit.roadwidth/self.width_discretisation_resol)+1
     self.discrete_state_head_size=self.heading_discretisation_steps
     self.discrete_action_steering_size=self.steering_discretisation_steps
     
@@ -127,6 +151,29 @@ class Agent():
     self.trajectory=circuit.Trajectory(self.state_pt)
 
   #####################################
+  def DrawInit(self, zoom_factor=1):
+    self.circuit.CreateImage(zoom_factor=zoom_factor)
+    self.pygame_display=pygame.display.set_mode((self.circuit.image.shape[0], self.circuit.image.shape[1]))
+    self.circuit.DrawImage()
+
+  #####################################
+  def DrawBackground(self):
+    self.circuit.DrawImage()
+    self.circuit.ShowImage(self.pygame_display)
+    
+  #####################################
+  def DrawTrajectory(self, context, color="green", point_size=1):
+    [odo, width, heading]=context.states_list[0]
+    [pt, s_idx]=self.circuit.PtLineCoord2XY(odo, width, None)
+    trajectory=circuit.Trajectory(pt)
+    for state in context.states_list[1:]:
+      [odo, width, heading]=state
+      [pt, s_idx]=self.circuit.PtLineCoord2XY(odo, width, None)
+      trajectory.AddPoint(pt)
+    self.circuit.DrawTrajectory(trajectory, color, ptsize=point_size)
+    self.circuit.ShowImage(self.pygame_display)
+
+  #####################################
   def SetState(self, state):
     # set LW state values
     self.state=state
@@ -154,7 +201,8 @@ class Agent():
     """
     [odo, width, heading]=state
     disc_odo=int(round((odo)/self.odo_discretisation_resol))
-    disc_width=int(round(((width+self.circuit.roadwidth/2)/self.circuit.roadwidth)*(self.width_discretisation_steps-1)))
+    disc_width=int(round((width+self.circuit.roadwidth/2)/self.width_discretisation_resol))
+    #disc_width=int(round(((width+self.circuit.roadwidth/2)/self.circuit.roadwidth)*(self.width_discretisation_steps-1)))
     disc_heading=int(round(((heading%(2*math.pi))/(2*math.pi))*(self.heading_discretisation_steps-1)))
     return (disc_odo, disc_width, disc_heading)
     
@@ -171,7 +219,8 @@ class Agent():
   def UndiscretiseState(self, discrete_state):
     [disc_odo, disc_width, disc_heading]=discrete_state
     odo=disc_odo*self.odo_discretisation_resol
-    width=(disc_width/(self.width_discretisation_steps-1))*self.circuit.roadwidth-self.circuit.roadwidth/2
+    width=disc_width*self.width_discretisation_resol-self.circuit.roadwidth/2
+    #width=(disc_width/(self.width_discretisation_steps-1))*self.circuit.roadwidth-self.circuit.roadwidth/2
     heading=disc_heading*(2*math.pi/self.heading_discretisation_steps)
     return [odo, width, heading]
     
@@ -187,113 +236,97 @@ class Agent():
     return (steering,)
     
   #####################################
-  def AddStateToTrajectory(self, state):
-    # Convert state to point
-    [odo, width, heading]=self.state
-    pt=self.circuit.PtLineCoord2XY(odo, width)
-    self.trajectory.AddPoint(pt)
-    
-  #####################################
-  def AddDiscreteStateToTrajectory(self, discrete_state):
-    state=self.UndiscretiseState(discrete_state)
-    self.AddStateToTrajectory(state)
-    
-  #####################################
-  def CutTrajectory(self, len):
-    self.trajectory.Cut(len)
-
-  #####################################
-  def GetState(self):
-    return self.state
-
-  #####################################
-  def GetDiscreteState(self):
-    discrete_state=self.DiscretiseState(self.state)
-    return discrete_state
-
-  #####################################
-  def Transition(self, action):
+  def Transition(self, state, action):
+    """
+    Agent transition from a state with an action
+    """
     # Get state point and heading
-    odo=self.state[0]
-    width=self.state[1]
-    heading=self.state[2]
+    odo=state[0]
+    width=state[1]
+    heading=state[2]
+    [pt, s_idx]=self.circuit.PtLineCoord2XY(odo, width)
     
     steering=action[0]
     throttle=1 # throttle unused for now
-    dist=throttle*0.25
+
+    dist=throttle*0.2
     v=1 # speed unused for now
     
     # new heading
-    heading=heading+(steering-0.5)*self.steer_max
+    new_heading=heading+(steering-0.5)*self.steer_max
     # new point
-    pt=self.state_pt+np.array([math.cos(heading), math.sin(heading)])*dist
+    new_pt=pt+np.array([math.cos(heading), math.sin(heading)])*dist
+    
     # Compute LW coordinates of new point
-    [odo, width, s_index]=self.circuit.PtXY2LineCoord(pt)
-    state=[odo, width, heading]
-    discrete_state=self.DiscretiseState(state)
-    
-    # save old state
-    self.old_state=self.state
-    self.old_state_pt=self.state_pt
-    self.old_discrete_state=self.discrete_state
-    # update state
-    self.state=state
-    self.state_pt=pt
-    self.discrete_state=discrete_state
-    # add new point to trajectory
-    self.trajectory.AddPoint(pt)
-    
+    [new_odo, new_width, s_index]=self.circuit.PtXY2LineCoord(new_pt)
+    new_state=(new_odo, new_width, new_heading)
+    return new_state
+
   #####################################
-  def DiscreteTransition(self, discrete_action):
+  def Step(self, context, discrete_action):
+    """
+    Performs an agent step
+    """
+    state=context.state
+    [odo, width, heading]=state
     action=self.UndiscretiseAction(discrete_action)
-    self.Transition(action)
-
-  #####################################
-  def DrawInit(self, zoom_factor=1):
-    self.circuit.CreateImage(zoom_factor=zoom_factor)
-    self.pygame_display=pygame.display.set_mode((self.circuit.image.shape[0], self.circuit.image.shape[1]))
-    self.circuit.DrawImage()
-
-  #####################################
-  def DrawBackground(self):
-    self.circuit.DrawImage()
-    self.circuit.ShowImage(self.pygame_display)
-    
-  #####################################
-  def DrawTrajectory(self, trajectory=None, color="green", point_size=1):
-    if trajectory is None:
-      trajectory=self.trajectory
-    self.circuit.DrawTrajectory(self.trajectory, color, ptsize=point_size)
-    self.circuit.ShowImage(self.pygame_display)
-
-  #####################################
-  def DrawQTable(self, qtable):
-    pass
-    
-  #####################################
-  def DiscreteStep(self, discrete_action):
     # Agent transition
-    self.DiscreteTransition(discrete_action)
-    # Compute reward, fail and done
+    new_state=self.Transition(state, action)
+    [new_odo, new_width, new_heading]=new_state
+
+    # consider circuit begining crossing for odo computation
+    if self.circuit.length/2 < odo and odo <= self.circuit.length and 0 <= new_odo and new_odo < self.circuit.length/2 :
+      new_odo=new_odo+self.circuit.length
+    
+    dist=new_odo-odo
+      
+    # reward computation including bonus and penalty
+    #print("Step : newstate="+str(new_state)+" circuit length"+str(self.circuit.length))
     fail=False
     done=False
-    [odo, width, heading]=self.state
-    [old_odo, old_width, old_heading]=self.old_state
-    
-    reward=odo-old_odo
-    if reward < 0 :
+    if dist < 0 :
       # backward
-      reward=0
       fail=True
-      done=True
       reward=self.penalty
-    if abs(width) >= self.circuit.roadwidth/2 :
+      #print("backward")
+    elif abs(new_width) >= self.circuit.roadwidth/2 :
       # wall crash
       fail=True
-      done=True
       reward=self.penalty
-    if odo >= self.circuit.length:
+      #print("wall crash")
+    elif dist > 0.5:
+      # wall jumped !
+      fail=True
+      reward=self.penalty
+      #print("wall jump")
+    elif new_odo >= self.circuit.length:
       done=True
-    
-    return [reward, fail, done]
+      # final reward = bonus - trajectory length
+      reward=self.bonus_reward-len(context.states_list)
+      print("done")
+    else:
+      # very little reward for each step such that circuit completion is
+      # better than a long walk before wall crash
+      reward=0.0001
+      
+    new_discrete_state=self.DiscretiseState(new_state)
+    context.AddState(new_state, new_discrete_state)
 
+    return [new_discrete_state, reward, fail, done]
+
+  #####################################
+  def NewContext(self, discrete_init_state):
+    init_state=self.UndiscretiseState(discrete_init_state)
+    context=AgentContext(init_state, discrete_init_state)
+    return context
+    
+  #####################################
+  def CutContextTrajectory(self, context, len):
+    state=context.states_list[len+1]
+    context.states_list=context.states_list[0:len+1]
+    discrete_state=self.DiscretiseState(state)
+    context.state=state
+    context.discrete_state=discrete_state
+    
+    
+    
