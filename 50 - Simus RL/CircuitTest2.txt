@@ -8,8 +8,8 @@ UnitLength 1.0
 # Dimensions
 width 13
 height 13
-margins 0
-roadwidth 1.6
+margins 5
+roadwidth 1
 
 StartPoint  (7.25,11)
 InitialHeading 0
