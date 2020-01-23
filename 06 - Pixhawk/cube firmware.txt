@@ -1,0 +1,26 @@
+https://discuss.cubepilot.org/t/fmuv3-vs-cubeblack-firmware/876/4
+
+disgruntled-patzer
+Lau Yan Han
+May 22
+Thank you everyone for the advice.
+
+The physical checks for safe IMU behaviour on cube black, will only operate with cube Black firmware, and the check in mission planner will only work with cube Black firmware
+
+So when it asks, alway select Cube Black for a ProfiCNC/Hex CubeBlack
+
+I understand that we must select CubeBlack firmware for the newest Cube Blacks for the reasons stated above.
+
+But what about the older Cubes? I am working on two older batches of Cubes (which still have the labels “Pixhawk 2” on them):
+
+1st batch was purchased in late 2016/early 2017
+2nd batch was purchased in early 2018
+Are the older Cubes supposed to run on the CubeBlack firmware as well? I have tried looking around the forums but couldn’t find an answer to this :slight_smile:
+
+1 Reply
+
+
+philip
+Leader
+May 22
+All cube Blacks should run CubeBlack firmware and the latest parameters
