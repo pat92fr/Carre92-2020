@@ -1,0 +1,5 @@
+robot.c:62:6:Robot_Init	64	static
+robot.c:144:6:Robot_Start	16	static
+robot.c:154:6:Robot_Stop	16	static
+robot.c:169:6:Robot_Update	24	static
+robot.c:221:6:Robot_ReadCommand	80	static

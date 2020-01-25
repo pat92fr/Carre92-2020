@@ -1,0 +1,10 @@
+serial.c:38:6:uart2_StartReceiveCmd	0	static
+serial.c:50:6:uart2_StartReceiveServoConf	0	static
+serial.c:59:5:uart2_ReceivedLength	0	static
+serial.c:69:6:uart2_GetCmd	8	static
+serial.c:93:6:Message_Send	0	static
+serial.c:82:6:uart2_Transmit	0	static
+serial.c:104:6:Message_StartReceive	0	static
+serial.c:114:5:Message_ReceivedLength	0	static
+serial.c:126:6:Message_Get	8	static
+serial.c:139:6:HAL_UART_RxCpltCallback	8	static
