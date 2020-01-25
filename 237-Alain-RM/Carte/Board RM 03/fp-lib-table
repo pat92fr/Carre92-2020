@@ -1,0 +1,4 @@
+(fp_lib_table
+  (lib (name TSR_2-2450)(type Legacy)(uri ${KIPRJMOD}/TSR_2-2450.mod)(options "")(descr ""))
+  (lib (name lib_perso)(type KiCad)(uri ${KIPRJMOD}/lib_perso.pretty)(options "")(descr ""))
+)
