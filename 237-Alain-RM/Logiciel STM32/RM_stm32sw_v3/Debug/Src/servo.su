@@ -1,0 +1,8 @@
+servo.c:43:6:Servo_Init	0	static
+servo.c:56:6:Servo_SetLimits	8	static
+servo.c:71:6:Servo_Start	0	static
+servo.c:81:6:Servo_Stop	0	static
+servo.c:112:6:Servo_SetPulse	0	static
+servo.c:89:6:Servo_Autotest	16	static
+servo.c:123:6:Servo_SetAngle	16	static
+servo.c:136:6:Servo_SetRatio	8	static
