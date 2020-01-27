@@ -7,6 +7,8 @@
 
 #include "serial.h"
 #include "tools.h"
+#include "math.h"
+
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -219,6 +221,48 @@ void ts_itoa(char **buf, unsigned int d, int base)
 
 /**
 **---------------------------------------------------------------------------
+**  Abstract: Convert float to ascii
+**  Returns:  void
+**---------------------------------------------------------------------------
+*/
+void ts_ftoa(char **buf, double x, int base)
+{
+  int int_part;
+  double dec_part;
+  int nb_digits;
+
+  if(x<0)
+  {
+    *((*buf)++)='-';
+    x=-x;
+  }
+
+  int_part=floor(x);
+  ts_itoa(buf, int_part, base);
+
+  dec_part=x-int_part;
+
+  if(dec_part == 0)
+    return;
+
+  *((*buf)++) = '.';
+  nb_digits=0;
+
+  while( (dec_part!=0) && (nb_digits < 8))
+  {
+    dec_part*=base;
+    int_part=floor(dec_part);
+    if(int_part > 9)
+      *((*buf)++) = (int_part-10) + 'A';
+    else
+      *((*buf)++) = int_part + '0';
+    dec_part-=int_part;
+    nb_digits++;
+  }
+}
+
+/**
+**---------------------------------------------------------------------------
 **  Abstract: Writes arguments va to buffer buf according to format fmt
 **  Returns:  Length of string
 **---------------------------------------------------------------------------
@@ -263,6 +307,9 @@ int ts_formatstring(char *buf, const char *fmt, va_list va)
         case 'x':
         case 'X':
           ts_itoa(&buf, va_arg(va, int), 16);
+        break;
+        case 'f':
+          ts_ftoa(&buf, va_arg(va, double), 10);
         break;
         case '%':
           *buf++ = '%';
@@ -323,6 +370,13 @@ int ts_formatlength(const char *fmt, va_list va)
           length += 8;
           va_arg(va, unsigned int);
           break;
+        case 'f':
+          /* integer part of double is converted into int */
+          /* so for values > 2^32, results are wrongs     */
+          /* but length is max 11 char + dot + dec part   */
+          length += 11+1+8;
+          va_arg(va, double);
+        break;
         default:
           ++length;
           break;
