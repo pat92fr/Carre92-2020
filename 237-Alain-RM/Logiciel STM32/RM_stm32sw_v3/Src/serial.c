@@ -225,11 +225,17 @@ void ts_itoa(char **buf, unsigned int d, int base)
 **  Returns:  void
 **---------------------------------------------------------------------------
 */
-void ts_ftoa(char **buf, double x, int base)
+void ts_ftoa(char **buf, double x)
 {
-  int int_part;
+  double int_part;
   double dec_part;
   int nb_digits;
+
+  if (x==0)
+  {
+    *((*buf)++)='0';
+    return;
+  }
 
   if(x<0)
   {
@@ -237,27 +243,106 @@ void ts_ftoa(char **buf, double x, int base)
     x=-x;
   }
 
-  int_part=floor(x);
-  ts_itoa(buf, int_part, base);
-
-  dec_part=x-int_part;
-
-  if(dec_part == 0)
-    return;
-
-  *((*buf)++) = '.';
-  nb_digits=0;
-
-  while( (dec_part!=0) && (nb_digits < 8))
+  if (x>=10000.)
   {
-    dec_part*=base;
-    int_part=floor(dec_part);
-    if(int_part > 9)
-      *((*buf)++) = (int_part-10) + 'A';
-    else
-      *((*buf)++) = int_part + '0';
-    dec_part-=int_part;
-    nb_digits++;
+    int pow10=0;
+    int nb_digits=0;
+
+    while(x>=10)
+    {
+      pow10++;
+      x/=10;
+    }
+
+    // now 1<=x<10
+    int_part=floor(x);
+    *((*buf)++) = (char)int_part + '0';
+    dec_part=x-int_part;
+
+    if(dec_part > 0)
+    {
+      *((*buf)++) = '.';
+      nb_digits=0;
+
+      while( (dec_part!=0) && (nb_digits < 6))
+      {
+        dec_part*=10;
+        int_part=floor(dec_part);
+        *((*buf)++) = (char)int_part + '0';
+        dec_part-=int_part;
+        nb_digits++;
+      }
+    }
+    *((*buf)++) = 'e';
+    ts_itoa(buf, pow10, 10);
+  }
+  else if (x<0.0001)
+  {
+    int pow10=0;
+    int nb_digits=0;
+
+    while(x<=1)
+    {
+      pow10++;
+      x*=10;
+    }
+
+    // now 1<=x<10
+    int_part=floor(x);
+    *((*buf)++) = (char)int_part + '0';
+    dec_part=x-int_part;
+
+    if(dec_part > 0)
+    {
+      *((*buf)++) = '.';
+      nb_digits=0;
+
+      while( (dec_part!=0) && (nb_digits < 6))
+      {
+        dec_part*=10;
+        int_part=floor(dec_part);
+        *((*buf)++) = (char)int_part + '0';
+        dec_part-=int_part;
+        nb_digits++;
+      }
+    }
+    *((*buf)++) = 'e';
+    *((*buf)++) = '-';
+    ts_itoa(buf, pow10, 10);
+
+  }
+  else
+  {
+    int div = 1;
+    int nb_digits=0;
+
+    while (x/div >= 10)
+    {
+      div *= 10;
+    }
+    dec_part=x;
+    while (div != 0)
+    {
+      int_part=floor(dec_part/div);
+      dec_part-=int_part*div;
+      div /= 10;
+      *((*buf)++) = (char)int_part + '0';
+      nb_digits++;
+    }
+
+    if(dec_part == 0)
+      return;
+
+    *((*buf)++) = '.';
+
+    while( (dec_part!=0) && (nb_digits < 7))
+    {
+      dec_part*=10;
+      int_part=floor(dec_part);
+      *((*buf)++) = (char)int_part + '0';
+      dec_part-=int_part;
+      nb_digits++;
+    }
   }
 }
 
@@ -309,7 +394,7 @@ int ts_formatstring(char *buf, const char *fmt, va_list va)
           ts_itoa(&buf, va_arg(va, int), 16);
         break;
         case 'f':
-          ts_ftoa(&buf, va_arg(va, double), 10);
+          ts_ftoa(&buf, va_arg(va, double));
         break;
         case '%':
           *buf++ = '%';
@@ -371,10 +456,8 @@ int ts_formatlength(const char *fmt, va_list va)
           va_arg(va, unsigned int);
           break;
         case 'f':
-          /* integer part of double is converted into int */
-          /* so for values > 2^32, results are wrongs     */
-          /* but length is max 11 char + dot + dec part   */
-          length += 11+1+8;
+          /* sign+7digits+dot+sign+e+exponent */
+          length += 1+7+1+1+1+3;
           va_arg(va, double);
         break;
         default:
