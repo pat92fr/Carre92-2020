@@ -1,0 +1,12 @@
+robot.c:66:6:Robot_Init	72	static
+robot.c:159:5:Robot_ServoId2Idx	16	static
+robot.c:172:6:Robot_Unfold	40	static
+robot.c:189:6:Robot_Fold	16	static
+robot.c:205:6:Robot_Run	0	static
+robot.c:219:6:Robot_Wait	0	static
+robot.c:227:6:Robot_StartPosition	40	static
+robot.c:240:6:Robot_Update	48	static
+robot.c:320:6:Robot_ReadCommand	64	static
+robot.c:465:8:Robot_GetState	0	static
+robot.c:481:6:Robot_ButtonPushed	8	static
+robot.c:503:6:Robot_Autotest	64	static

@@ -1,0 +1,6 @@
+leg.c:16:6:Leg_Init	8	static
+leg.c:41:6:Leg_Start	8	static
+leg.c:51:6:Leg_Stop	8	static
+leg.c:61:6:Leg_Autotest	24	static
+leg.c:91:6:Leg_SetPos	56	static
+leg.c:129:6:Leg_Move	32	static
