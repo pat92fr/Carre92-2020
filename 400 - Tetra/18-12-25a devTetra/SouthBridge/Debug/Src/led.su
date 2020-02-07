@@ -1,0 +1,8 @@
+led.c:20:6:HAL_Led_Init	4	static
+led.c:25:6:HAL_Led_Add	24	static
+led.c:43:6:HAL_Led_Set	16	static
+led.c:49:6:HAL_Led_Reset	16	static
+led.c:55:6:HAL_Led_Toggle	16	static
+led.c:68:5:HAL_Led_Get	16	static
+led.c:73:6:HAL_Led_Sequence	32	static
+led.c:95:6:HAL_Led_Process	24	static

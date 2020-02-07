@@ -1,0 +1,10 @@
+motor.c:14:13:brake_left_motor	8	static
+motor.c:20:13:brake_right_motor	8	static
+motor.c:26:13:cw_left_motor	8	static
+motor.c:32:13:cw_right_motor	8	static
+motor.c:38:13:ccw_left_motor	8	static
+motor.c:44:13:ccw_right_motor	8	static
+motor.c:50:13:set_left_motor_speed	16	static
+motor.c:55:13:set_right_motor_speed	16	static
+motor.c:62:6:HAL_Motor_Init	8	static
+motor.c:70:6:HAL_Motor_Set	16	static

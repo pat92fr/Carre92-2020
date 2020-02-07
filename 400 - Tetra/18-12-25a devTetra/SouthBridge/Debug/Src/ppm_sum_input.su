@@ -1,0 +1,3 @@
+ppm_sum_input.c:21:6:HAL_PPM_SUM_Input_Init	16	static
+ppm_sum_input.c:35:9:HAL_PPM_SUM_Input_Get	24	static
+ppm_sum_input.c:52:6:HAL_PPM_SUM_Input_ISR	32	static

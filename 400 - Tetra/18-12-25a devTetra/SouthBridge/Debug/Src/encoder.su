@@ -1,0 +1,4 @@
+encoder.c:11:6:HAL_Encoder_Init	24	static
+encoder.c:26:6:HAL_Encoder_Reset	16	static
+encoder.c:56:9:HAL_Encoder_Get	16	static
+encoder.c:80:9:HAL_Encoder_Delta	32	static

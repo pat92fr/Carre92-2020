@@ -1,0 +1,3 @@
+battery.c:22:6:HAL_Battery_Init	8	static
+battery.c:28:6:HAL_Battery_Is_Low	24	static
+battery.c:34:7:HAL_Battery_Get	24	static

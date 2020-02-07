@@ -1,0 +1,16 @@
+main.c:314:6:HAL_TIM_IC_CaptureCallback	16	static
+main.c:319:6:HAL_SYSTICK_Callback	4	static
+main.c:335:5:main	240	static
+main.c:1134:6:SystemClock_Config	88	static
+main.c:1189:13:MX_ADC1_Init	24	static
+main.c:1234:13:MX_I2C1_Init	8	static
+main.c:1254:13:MX_TIM1_Init	88	static
+main.c:1325:13:MX_TIM2_Init	56	static
+main.c:1360:13:MX_TIM3_Init	72	static
+main.c:1425:13:MX_TIM4_Init	72	static
+main.c:1490:13:MX_TIM5_Init	56	static
+main.c:1525:13:MX_TIM14_Init	8	static
+main.c:1541:13:MX_USART2_UART_Init	8	static
+main.c:1562:13:MX_DMA_Init	16	static
+main.c:1588:13:MX_GPIO_Init	48	static
+main.c:1641:6:_Error_Handler	16	static

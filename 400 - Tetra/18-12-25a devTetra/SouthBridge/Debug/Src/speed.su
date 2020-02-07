@@ -1,0 +1,3 @@
+speed.c:10:6:next_speed	40	static
+speed.c:27:7:accelaration_until_distance_left	32	static
+speed.c:36:7:accelaration_until_angle_left	32	static

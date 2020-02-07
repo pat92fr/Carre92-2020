@@ -1,0 +1,6 @@
+imu.c:23:6:HAL_IMU_Scale_Data	24	static
+imu.c:40:6:HAL_IMU_Gyro_Bias_Correction	24	static
+imu.c:81:6:HAL_IMU_Process_Failure	4	static
+imu.c:88:6:HAL_IMU_Init	8	static
+imu.c:93:6:HAL_IMU_Add	56	static
+imu.c:151:6:HAL_IMU_Read_Sensors	40	static

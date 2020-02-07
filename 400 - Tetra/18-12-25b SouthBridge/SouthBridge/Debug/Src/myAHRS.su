@@ -1,0 +1,2 @@
+myAHRS.c:23:6:HAL_AHRS_Init	24	static
+myAHRS.c:48:6:HAL_AHRS_Process	200	static

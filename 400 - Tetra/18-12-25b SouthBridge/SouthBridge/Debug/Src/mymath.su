@@ -1,0 +1,6 @@
+mymath.c:4:9:constrain	24	static
+mymath.c:14:7:fconstrain	24	static
+mymath.c:24:10:map	24	static
+mymath.c:34:7:fmap	32	static
+mymath.c:54:7:myfabs	16	static
+mymath.c:66:7:fastAtan2	16	static
