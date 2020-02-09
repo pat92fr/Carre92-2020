@@ -1,0 +1,34 @@
+<linkage2>
+	<program zoom="1192.533293" xoffset="36" yoffset="252" scalefactor="1.000000" units="Millimeters" backgroundtransparency="0.000000" xgrid="" ygrid=""/>
+	<connector id="3" selected="false" layer="16" x="0.170432" y="0.025605" color="16711808" usercolor="false"/>
+	<connector id="4" selected="false" layer="16" x="0.004913" y="-0.314079" draw="true" color="6854344" usercolor="false"/>
+	<connector id="7" selected="false" layer="16" x="0.018898" y="0.000000" anchor="true" locked="true" input="true" rpm="15.000000" color="11272364" usercolor="false"/>
+	<connector id="8" selected="true" layer="16" x="-0.018898" y="0.000000" anchor="true" locked="true" input="true" rpm="15.000000" limitangle="45.000000" startoffset="-5.000000" color="8439808" usercolor="false"/>
+	<connector id="9" selected="false" layer="16" x="-0.160979" y="0.028396" color="13123282" usercolor="false"/>
+	<connector id="1" selected="false" layer="1" x="-0.129400" y="-0.331722" color="13158600" usercolor="false"/>
+	<connector id="10" selected="false" layer="1" x="0.151181" y="-0.331320" color="13158600" usercolor="false"/>
+	<Link id="3" selected="false" layer="16" linesize="1" shapetype="hull" color="16711808" usercolor="false">
+		<connector id="4"/>
+		<connector id="9"/>
+	</Link>
+	<Link id="1" selected="false" layer="16" linesize="1" shapetype="hull" color="12632064" usercolor="false">
+		<connector id="3"/>
+		<connector id="4"/>
+	</Link>
+	<Link id="2" selected="false" layer="16" linesize="1" actuator="true" startoffset="0.000000" alwaysmanual="true" throw="0.075591" cpm="15.000000" shapetype="hull" color="32768" usercolor="false">
+		<connector id="7"/>
+		<connector id="3"/>
+	</Link>
+	<Link id="0" selected="false" layer="16" linesize="1" actuator="true" startoffset="0.000000" alwaysmanual="true" throw="0.075591" cpm="15.000000" shapetype="hull" color="16711680" usercolor="false">
+		<connector id="8"/>
+		<connector id="9"/>
+	</Link>
+	<Link id="4" selected="false" layer="1" linesize="1" locked="true" shapetype="hull" color="13158600" usercolor="false">
+		<connector id="1"/>
+		<connector id="10"/>
+	</Link>
+	<selected>
+		<connector id="8"/>
+	</selected>
+	<background></background>
+</linkage2>
