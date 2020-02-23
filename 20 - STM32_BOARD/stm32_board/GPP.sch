@@ -479,7 +479,7 @@ U 1 1 5E53850E
 P 3400 2250
 F 0 "C2" H 3488 2296 50  0000 L CNN
 F 1 "100u" H 3488 2205 50  0000 L CNN
-F 2 "Capacitor_SMD:C_0603_1608Metric_Pad1.05x0.95mm_HandSolder" H 3400 2250 50  0001 C CNN
+F 2 "Capacitor_SMD:CP_Elec_8x6.9" H 3400 2250 50  0001 C CNN
 F 3 "~" H 3400 2250 50  0001 C CNN
 	1    3400 2250
 	1    0    0    -1  
@@ -2006,13 +2006,13 @@ Text Label 12450 3450 0    50   ~ 0
 SWDIO
 NoConn ~ 10750 3550
 NoConn ~ 10750 3650
-Text Label 12450 3250 0    50   ~ 0
-LD4_RXi
-Text Label 12450 3350 0    50   ~ 0
-LD4_TXo
 Text Label 12450 6250 0    50   ~ 0
-LD3_RXi
+LD4_RXi
 Text Label 12450 6150 0    50   ~ 0
+LD4_TXo
+Text Label 12450 3250 0    50   ~ 0
+LD3_RXi
+Text Label 12450 3350 0    50   ~ 0
 LD3_TXo
 Text Label 10750 6450 2    50   ~ 0
 LD2_RXi
@@ -2099,9 +2099,9 @@ A
 Text Label 2050 2050 0    50   ~ 0
 B
 Text Label 12450 2650 0    50   ~ 0
-B
-Text Label 12450 2250 0    50   ~ 0
 A
+Text Label 12450 2250 0    50   ~ 0
+B
 NoConn ~ 10750 7050
 NoConn ~ 12450 2550
 NoConn ~ 12450 2850
