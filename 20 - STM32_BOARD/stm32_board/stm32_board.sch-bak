@@ -14,12 +14,12 @@ Comment2 ""
 Comment3 ""
 Comment4 ""
 $EndDescr
-Text Notes 550  750  0    50   ~ 0
-Alimentations :\n- 5V BEC pour alimenter le STM32\n- 5V en plusieurs rails indépendants pour chaqsue groupe de périphériques
-Text Notes 550  1750 0    50   ~ 0
-Entrées/Sorties :\n- 3 x PWN input pour raccordement R/C modelisme\n- 3 x PWM output pour controle Servo/ESC/Aux\n- 1 x Encoder input (modes simple et quadrature AB) pour capteur de vitesse/distance\n- 4 x GPIO/ANALOG input/output pour bouton/divers\n- 1 x SERIAL connecteur pin-to-pin compatible FTDI (connecteur 2.54)\n- 4 x SERIAL connecteur pin-to-pin compatible LIDAR TF MiniPlus (deux connecteurs : JST 4 broches 1 mm et 2.54)\n- 1 x SERIAL + I2C + GPIO connecteurs pin-to-pin compatibles GPS HERE+ (trois connecturs JST 1.25mm Hirose DF13 et 2.54)\n- 1 x SERIAL connecteur 2.54 vers Rpi ou Nvidia Jetson (croisé pour cordon 3 fils non croisé)\n- 1 x I2C connecteur 2.54 pin-to-pin compatible module MinIMU-9D v5 pour déport IMU\n- 1 x SERIAL pin-to-pin compatible RPLIDAR A3 (connecteur XH2.54 5 points)\n
-Text Notes 550  2450 0    50   ~ 0
-Périphériques embarqués :\n- 6 LEDs\n- 1 touche RESET\n- 1 MinIMU-9D v5\n- 1 connecteur ST LINK V2 reduit\n- 32KHz \n- Batt CR2032\n
+Text Notes 550  900  0    50   ~ 0
+Alimentations :\n- Direct LIPO avec mesure de tension batterie (2s)\n- Alimentation servo et récepteur via BEC intégré\n- Alimentation des capteurs supplémentaires à l'aide de TRACO sur la carte\n     * 1 x TRACO 5V par groupe de deux LIDAR\n
+Text Notes 550  1850 0    50   ~ 0
+Entrées/Sorties :\n- 3 x PWN input pour raccordement R/C modelisme\n- 3 x PWM output pour controle Servo/ESC/Aux\n- 1 x Encoder input (modes simple et quadrature AB) pour capteur de vitesse/distance\n- 4 x GPIO/ANALOG input/output pour bouton/divers\n- 1 x SERIAL connecteur pin-to-pin compatible FTDI (connecteur 2.54)\n- 4 x SERIAL connecteur pin-to-pin compatible LIDAR TF MiniPlus (deux connecteurs : JST 4 broches 1 mm et 2.54)\n- 1 x SERIAL connecteur 2.54 vers Rpi ou Nvidia Jetson (croisé pour cordon 3 fils non croisé)\n- 1 x I2C connecteur 2.54 pin-to-pin compatible module MinIMU-9D v5 pour déport IMU
+Text Notes 550  2500 0    50   ~ 0
+Périphériques embarqués :\n- 6 LEDs\n- 1 MinIMU-9D v5\n- 1 connecteur ST LINK V2 reduit\n
 $Bitmap
 Pos 10200 1600
 Scale 1.000000
@@ -39767,9 +39767,9 @@ EndData
 $EndBitmap
 Wire Notes Line
 	5450 1700 5450 5050
-Text Notes 550  3500 0    50   ~ 0
+Text Notes 550  3700 0    50   ~ 0
 STM32F765ZI : \n* seulement si pin muxing problématique\n- boitier LQFP-144 \n- 216MHz\n- 512ko RAM\n
-Text Notes 550  3000 0    50   ~ 0
+Text Notes 550  3150 0    50   ~ 0
 STM32F765VI : \n* solution préférée\n- boitier LQFP-100\n- 216MHz\n- 512ko RAM\n- Pb : DMA non dispo sur une UART.
 $Bitmap
 Pos 3850 3300
