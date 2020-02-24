@@ -1,3 +1,7 @@
+Afficher la consigne de vitesse générée par controller
+
+Asservir al distance totale sur le portique et initialiser à 100m
+
 Ajoueter odométrie et mieux gérer la vitesse avec RAZ au passage sous portique.
 
 Intégrer modèle de piste plus simple

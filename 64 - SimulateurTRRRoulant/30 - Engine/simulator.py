@@ -15,6 +15,7 @@ root_dir = 'c:/tmp'
 
 from my_math import *
 import control
+import odometry
 
 import numpy as np
 import math
@@ -109,12 +110,13 @@ def genLabelText(text, i):
 
 class MyApp(ShowBase):
 
-	def __init__(self, rc):
+	def __init__(self, rc, odom):
 
 		ShowBase.__init__(self)
 
 		# external robot controller
 		self.robot_controller = rc
+		self.robot_odometry = odom
 
         # Check video card capabilities.
 		if not self.win.getGsg().getSupportsBasicShaders():
@@ -127,50 +129,6 @@ class MyApp(ShowBase):
 		winprops.setSize(1280, 720)
 		base.win.requestProperties(winprops) 
 		base.setFrameRateMeter(True)
-
-		# OSD
-		self.dr = self.win.makeDisplayRegion()
-		self.dr.setSort(20)
-        
-        # OSD menu
-		self.exitText = genLabelText("q: Exit", 0)
-		self.autoText = genLabelText("a: Autopilot", 1)
-		self.manualText = genLabelText("m: Manualpilot", 2)
-		self.homeText = genLabelText("h: Home", 3)
-
-		# OSD graphics
-		self.speed_o_meter = OnscreenText(text="0km/h", pos=(1.4,0.80), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.25)
-		self.lap_timer = globalClock.getFrameTime()
-		self.lap_timer_text = OnscreenText(text=str(round(globalClock.getFrameTime(),1)) +"s", pos=(1.4,0.60), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.15)
-		self.best_lap_timer = 999.9
-		self.best_lap_timer_text = OnscreenText(text=str(round(self.best_lap_timer,1)) +"s", pos=(1.4,0.50), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
-		self.lap_counter = 0
-		
-		self.total_distance = 0.0
-		self.lap_distance = 0.0
-		self.lap_distance_text = OnscreenText(text=str(round(self.lap_distance,1)) +"m", pos=(1.7,0.50), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
-
-		# heading
-		self.heading = 0.0
-		self.heading_text = OnscreenText(text=str(int(self.heading)) +"deg", pos=(1.7,0.4), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
-
-		self.slider_max_speed = DirectSlider(range=(0,10), value=self.robot_controller.max_speed_ms, pageSize=0.1, command=self.slider_max_speed_change, scale=0.4, pos = (0.0,0.0,0.9))
-		self.text_max_speed = OnscreenText(text="Vmax " + str(self.robot_controller.max_speed_ms)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.9))
-		
-		self.slider_cornering_speed = DirectSlider(range=(0,10), value=self.robot_controller.cornering_speed, pageSize=0.1, command=self.slider_cornering_speed_change, scale=0.4, pos = (0.0,0.0,0.85))
-		self.text_cornering_speed = OnscreenText(text="Vcor " + str(self.robot_controller.cornering_speed)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.85))
-
-		self.slider_steering_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.steering_k_speed, pageSize=0.1, command=self.slider_steering_k_speed_change, scale=0.4, pos = (0.0,0.0,0.80))
-		self.text_steering_k_speed = OnscreenText(text="Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.80))
-
-		self.slider_lidar_direction_kp = DirectSlider(range=(0,5), value=self.robot_controller.pid_wall_following.kp, pageSize=0.1, command=self.slider_lidar_direction_kp_change, scale=0.4, pos = (0.0,0.0,0.75))
-		self.text_lidar_direction_kp = OnscreenText(text="Lidar Direction Kp " + str(round(self.robot_controller.pid_wall_following.kp,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.75))
-
-		self.slider_lidar_direction_kd = DirectSlider(range=(0,50), value=self.robot_controller.pid_wall_following.kd, pageSize=0.1, command=self.slider_lidar_direction_kd_change, scale=0.4, pos = (0.0,0.0,0.70))
-		self.text_lidar_direction_kd = OnscreenText(text="Lidar Direction Kd " + str(round(self.robot_controller.pid_wall_following.kd,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.70))
-
-		self.slider_lidar_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.lidar_direction_k_speed, pageSize=0.1, command=self.slider_lidar_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.65))
-		self.text_lidar_direction_k_speed = OnscreenText(text="Lidar Direction K speed " + str(round(self.robot_controller.lidar_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.65))
 
         # application state
 		self.quit = False
@@ -322,13 +280,24 @@ class MyApp(ShowBase):
 		self.ctraverser.addCollider(self.LidarRightCNP, self.cqueue)
 		self.ctraverser.addCollider(self.LidarLeftCNP, self.cqueue)
 		
-		# simulator speed control state
+		# simulator odometry (ground truth)
 		self.last_position = self.chassisNP.getPos()
 		self.current_position = self.chassisNP.getPos()
+		self.heading =  self.chassisNP.getH()+90.0
+		self.last_heading =  self.chassisNP.getH()+90.0
+		self.total_distance = 0.0
+		self.lap_distance = 0.0
+
+		# simulator speed control state
 		self.delta_distance = 0.0 # m
 		self.actual_speed_ms = 0.0 # m/s
 		self.actual_speed_kmh = 0.0
-		
+
+		# simulator speed control state
+		self.delta_heading = 0.0 # deg
+		self.actual_rotation_speed_dps = 0.0 # dps
+		self.gyro_bias = 0.0 #random.uniform(-0.2,0.2) #dps
+
 		# simulator manual control
 		self.current_speed_ms = 0.0
 		self.max_speed_ms = 8.0
@@ -345,6 +314,42 @@ class MyApp(ShowBase):
 		self.throttle = 0.0
 		self.engineForce = 0.0
 		self.brakeForce = 0.0
+
+		# OSD
+		self.dr = self.win.makeDisplayRegion()
+		self.dr.setSort(20)
+        
+        # OSD menu
+		self.exitText = genLabelText("q: Exit", 0)
+		self.autoText = genLabelText("a: Autopilot", 1)
+		self.manualText = genLabelText("m: Manualpilot", 2)
+		self.homeText = genLabelText("h: Home", 3)
+
+		# OSD graphics
+		self.speed_o_meter = OnscreenText(text="0km/h", pos=(1.4,0.80), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.25)
+		self.lap_timer = globalClock.getFrameTime()
+		self.lap_timer_text = OnscreenText(text=str(round(globalClock.getFrameTime(),1)) +"s", pos=(1.4,0.60), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.15)
+		self.best_lap_timer = 999.9
+		self.best_lap_timer_text = OnscreenText(text=str(round(self.best_lap_timer,1)) +"s", pos=(1.4,0.50), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
+		self.lap_counter = 0
+		self.lap_distance_text = OnscreenText(text=str(round(self.lap_distance,1)) +"m", pos=(1.7,0.50), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
+
+		# heading
+		self.heading = 0.0
+		self.heading_text = OnscreenText(text=str(int(self.heading)) +"deg", pos=(1.7,0.4), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
+		self.slider_max_speed = DirectSlider(range=(0,10), value=self.robot_controller.max_speed_ms, pageSize=0.1, command=self.slider_max_speed_change, scale=0.4, pos = (0.0,0.0,0.9))
+		self.text_max_speed = OnscreenText(text="Vmax " + str(self.robot_controller.max_speed_ms)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.9))
+		self.slider_cornering_speed = DirectSlider(range=(0,10), value=self.robot_controller.cornering_speed, pageSize=0.1, command=self.slider_cornering_speed_change, scale=0.4, pos = (0.0,0.0,0.85))
+		self.text_cornering_speed = OnscreenText(text="Vcor " + str(self.robot_controller.cornering_speed)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.85))
+		self.slider_steering_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.steering_k_speed, pageSize=0.1, command=self.slider_steering_k_speed_change, scale=0.4, pos = (0.0,0.0,0.80))
+		self.text_steering_k_speed = OnscreenText(text="Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.80))
+		self.slider_lidar_direction_kp = DirectSlider(range=(0,5), value=self.robot_controller.pid_wall_following.kp, pageSize=0.1, command=self.slider_lidar_direction_kp_change, scale=0.4, pos = (0.0,0.0,0.75))
+		self.text_lidar_direction_kp = OnscreenText(text="Lidar Direction Kp " + str(round(self.robot_controller.pid_wall_following.kp,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.75))
+		self.slider_lidar_direction_kd = DirectSlider(range=(0,50), value=self.robot_controller.pid_wall_following.kd, pageSize=0.1, command=self.slider_lidar_direction_kd_change, scale=0.4, pos = (0.0,0.0,0.70))
+		self.text_lidar_direction_kd = OnscreenText(text="Lidar Direction Kd " + str(round(self.robot_controller.pid_wall_following.kd,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.70))
+		self.slider_lidar_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.lidar_direction_k_speed, pageSize=0.1, command=self.slider_lidar_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.65))
+		self.text_lidar_direction_k_speed = OnscreenText(text="Lidar Direction K speed " + str(round(self.robot_controller.lidar_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.65))
+
 
 
 	def slider_max_speed_change(self):
@@ -477,20 +482,34 @@ class MyApp(ShowBase):
 		self.brakeForce = 0.0
 
 		# actual speed computation
+		self.last_position = self.current_position
 		self.current_position = self.chassisNP.getPos()
-		self.delta_distance = (self.current_position-self.last_position).length()
+		self.delta_distance = math.sqrt( 
+			(self.current_position.getX()-self.last_position.getX())*(self.current_position.getX()-self.last_position.getX()) + 
+			(self.current_position.getY()-self.last_position.getY())*(self.current_position.getY()-self.last_position.getY())
+			)
 		self.total_distance += self.delta_distance
 		self.lap_distance += self.delta_distance
-		if  dt != 0:
-			self.actual_speed_ms = self.actual_speed_ms * 0.8 + 0.2 * (self.delta_distance/dt)
-		self.last_position = self.current_position
-		self.actual_speed_kmh = 0.9 * self.actual_speed_kmh + 0.1 * self.actual_speed_ms*60*60/1000
+		#if  dt != 0:
+		self.actual_speed_ms = self.delta_distance/dt
+		self.actual_speed_kmh = self.actual_speed_kmh * 0.9 + 0.1 * self.actual_speed_ms*60*60/1000
 		self.speed_o_meter.setText(str(int(self.actual_speed_kmh))+ "km/h")
 		self.lap_distance_text.setText(str(int(self.lap_distance))+ "m")
 
 		# heading
-		self.heading = self.chassisNP.getH()
-		self.heading_text.setText(str(int(self.heading))+ "deg")
+		self.last_heading = self.heading
+		self.heading = self.chassisNP.getH()+90.0 # to be deleted +90 (test)
+		self.heading = (self.heading + 180.0) % 360.0 - 180.0
+		self.delta_heading = self.heading - self.last_heading
+		self.actual_rotation_speed_dps = self.delta_heading/dt
+		self.heading_text.setText('(' + str(round(self.current_position.getX(),1)) +',' + str(round(self.current_position.getY(),1)) +')   ' + str(int(self.heading))+ "deg")
+
+		# odometry
+		self.robot_odometry.process(
+			dt,
+			self.actual_speed_ms, # + gaussian_noise(0.0,0.3),
+			self.actual_rotation_speed_dps, #+ gaussian_noise(self.gyro_bias*1.0,3.0), #+ gaussian_noise(self.gyro_bias,2.0),
+		)
 
 		# chose controller
 		if not self.autopilot: # manual controller
@@ -762,9 +781,12 @@ print("Init external robot controller...")
 rc = control.robot_controller(); 
 print("Done!")
 
+print("Init external robot odometry...")
+odom = odometry.robot_odometry(); 
+print("Done!")
 
 print("Init sim engine...")
-app = MyApp(rc)
+app = MyApp(rc,odom)
 print("Done!")
 
 # game loop

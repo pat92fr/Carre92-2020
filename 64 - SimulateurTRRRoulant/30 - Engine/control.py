@@ -38,13 +38,14 @@ class robot_controller:
 		self.ratio_ai = 1.0
 
 		# steering settings
-		self.ration_ai_x1 = 0.3 #
-		self.ration_ai_x2 = 0.5 #
+		self.ration_ai_x1 = 0.2 #
+		self.ration_ai_x2 = 0.4 #
 
 		print("Done.")
 
 	# speed strategy
 	def max_speed_from_distance(self, distance):
+		distance = distance % 110.0
 		if distance > 0.0 and distance < 4.0:
 			return self.max_speed_ms
 		elif distance > 15.0 and distance < 25.0:
