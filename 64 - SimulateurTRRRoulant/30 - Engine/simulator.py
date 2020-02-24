@@ -8,7 +8,6 @@ steering_clamp = 35.0      # degree
 steering_increment = 360.0 # 160 degree per second
 
 root_dir = 'c:/tmp'
-dataset_dir = 'dataset'
 
 ## GLOBALS ########################################################################
 
@@ -137,15 +136,9 @@ class MyApp(ShowBase):
 		self.exitText = genLabelText("q: Exit", 0)
 		self.autoText = genLabelText("a: Autopilot", 1)
 		self.manualText = genLabelText("m: Manualpilot", 2)
-		self.recordText = genLabelText("r: Record", 3)
-		self.homeText = genLabelText("h: Home", 4)
-		self.shadowText = genLabelText("s: Ground shadows", 5)
-		self.publicityText = genLabelText("p: Side publicity and shadows", 6)
-		self.lightText = genLabelText("l: Overall Lightning", 7)
+		self.homeText = genLabelText("h: Home", 3)
 
 		# OSD graphics
-		self.target_image = OnscreenImage(image = '/c/tmp/media/cross.png', pos = (-0.005, 0.0, 0.0), scale = (0.05, 0.05, 0.05), )
-		self.target_image.setTransparency(TransparencyAttrib.MAlpha)
 		self.speed_o_meter = OnscreenText(text="0km/h", pos=(1.4,0.80), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.25)
 		self.lap_timer = globalClock.getFrameTime()
 		self.lap_timer_text = OnscreenText(text=str(round(globalClock.getFrameTime(),1)) +"s", pos=(1.4,0.60), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.15)
@@ -164,47 +157,31 @@ class MyApp(ShowBase):
 		self.slider_max_speed = DirectSlider(range=(0,10), value=self.robot_controller.max_speed_ms, pageSize=0.1, command=self.slider_max_speed_change, scale=0.4, pos = (0.0,0.0,0.9))
 		self.text_max_speed = OnscreenText(text="Vmax " + str(self.robot_controller.max_speed_ms)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.9))
 		
-		self.slider_ai_direction_kp = DirectSlider(range=(0,3), value=self.robot_controller.pid_line_following.kp, pageSize=0.1, command=self.slider_ai_direction_kp_change, scale=0.4, pos = (0.0,0.0,0.85))
-		self.text_ai_direction_kp = OnscreenText(text="AI Direction Kp " + str(round(self.robot_controller.pid_line_following.kp,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.85))
+		self.slider_cornering_speed = DirectSlider(range=(0,10), value=self.robot_controller.cornering_speed, pageSize=0.1, command=self.slider_cornering_speed_change, scale=0.4, pos = (0.0,0.0,0.85))
+		self.text_cornering_speed = OnscreenText(text="Vcor " + str(self.robot_controller.cornering_speed)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.85))
 
-		self.slider_ai_direction_kd = DirectSlider(range=(0,30), value=self.robot_controller.pid_line_following.kd, pageSize=0.1, command=self.slider_ai_direction_kd_change, scale=0.4, pos = (0.0,0.0,0.80))
-		self.text_ai_direction_kd = OnscreenText(text="AI Direction Kd " + str(round(self.robot_controller.pid_line_following.kd,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.80))
+		self.slider_steering_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.steering_k_speed, pageSize=0.1, command=self.slider_steering_k_speed_change, scale=0.4, pos = (0.0,0.0,0.80))
+		self.text_steering_k_speed = OnscreenText(text="Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.80))
 
-		self.slider_steering_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.steering_k_speed, pageSize=0.1, command=self.slider_steering_k_speed_change, scale=0.4, pos = (0.0,0.0,0.75))
-		self.text_steering_k_speed = OnscreenText(text="Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.75))
+		self.slider_lidar_direction_kp = DirectSlider(range=(0,5), value=self.robot_controller.pid_wall_following.kp, pageSize=0.1, command=self.slider_lidar_direction_kp_change, scale=0.4, pos = (0.0,0.0,0.75))
+		self.text_lidar_direction_kp = OnscreenText(text="Lidar Direction Kp " + str(round(self.robot_controller.pid_wall_following.kp,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.75))
 
-		self.slider_ai_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.ai_direction_k_speed, pageSize=0.1, command=self.slider_ai_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.70))
-		self.text_ai_direction_k_speed = OnscreenText(text="AI Direction K speed " + str(round(self.robot_controller.ai_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.70))
+		self.slider_lidar_direction_kd = DirectSlider(range=(0,50), value=self.robot_controller.pid_wall_following.kd, pageSize=0.1, command=self.slider_lidar_direction_kd_change, scale=0.4, pos = (0.0,0.0,0.70))
+		self.text_lidar_direction_kd = OnscreenText(text="Lidar Direction Kd " + str(round(self.robot_controller.pid_wall_following.kd,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.70))
 
-		self.slider_ai_direction_alpha = DirectSlider(range=(0,1), value=self.robot_controller.ai_direction_alpha, pageSize=0.01, command=self.slider_ai_direction_alpha_change, scale=0.4, pos = (0.0,0.0,0.65))
-		self.text_ai_direction_alpha = OnscreenText(text="AI Direction Alpha " + str(round(self.robot_controller.ai_direction_alpha,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.65))
-
-		self.slider_lidar_direction_kp = DirectSlider(range=(0,3), value=self.robot_controller.pid_wall_following.kp, pageSize=0.1, command=self.slider_lidar_direction_kp_change, scale=0.4, pos = (0.0,0.0,0.60))
-		self.text_lidar_direction_kp = OnscreenText(text="Lidar Direction Kp " + str(round(self.robot_controller.pid_wall_following.kp,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.60))
-
-		self.slider_lidar_direction_kd = DirectSlider(range=(0,30), value=self.robot_controller.pid_wall_following.kd, pageSize=0.1, command=self.slider_lidar_direction_kd_change, scale=0.4, pos = (0.0,0.0,0.55))
-		self.text_lidar_direction_kd = OnscreenText(text="Lidar Direction Kd " + str(round(self.robot_controller.pid_wall_following.kd,1)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.55))
-
-		self.slider_lidar_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.lidar_direction_k_speed, pageSize=0.1, command=self.slider_lidar_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.50))
-		self.text_lidar_direction_k_speed = OnscreenText(text="Lidar Direction K speed " + str(round(self.robot_controller.lidar_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.50))
+		self.slider_lidar_direction_k_speed = DirectSlider(range=(0,2), value=self.robot_controller.lidar_direction_k_speed, pageSize=0.1, command=self.slider_lidar_direction_k_speed_change, scale=0.4, pos = (0.0,0.0,0.65))
+		self.text_lidar_direction_k_speed = OnscreenText(text="Lidar Direction K speed " + str(round(self.robot_controller.lidar_direction_k_speed,2)), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.65))
 
         # application state
 		self.quit = False
 		self.autopilot = False
-		self.recording = False
-		self.apply_ground_shadow = False
-		self.apply_side_publicity_and_shadow = False
-		self.apply_light_modifier = False
 
 		# keyboard events
 		self.accept("q",     self.doQuit)
 		self.accept("a",     self.doAutopilot)
 		self.accept("m",     self.doManualpilot)
-		self.accept("r",     self.doRecord)
 		self.accept("h",     self.setHome)
-		self.accept("s",     self.setGroundShadow)
-		self.accept("p",     self.setSidePublicityAndShadow)
-		self.accept("l",     self.setLightModifier)
+
 
         # gamepad
 		self.gamepad = None
@@ -336,7 +313,6 @@ class MyApp(ShowBase):
 		self.camera.reparentTo(self.chassisNP)
 
 		# tasks
-		self.taskMgr.add(self.update_toulouse_map, 'updateMap')
 		self.taskMgr.add(self.physics_task, 'updatePhysics')
 
 		# Collisions
@@ -374,22 +350,14 @@ class MyApp(ShowBase):
 	def slider_max_speed_change(self):
 		self.robot_controller.max_speed_ms = float(self.slider_max_speed['value'])
 		self.text_max_speed.setText("Vmax " + str(round(self.robot_controller.max_speed_ms,1))+"m/s")
-
-	def slider_ai_direction_kp_change(self):
-		self.robot_controller.pid_line_following.kp = float(self.slider_ai_direction_kp['value'])
-		self.text_ai_direction_kp.setText("AI Direction Kp " + str(round(self.robot_controller.pid_line_following.kp,1)))
-
-	def slider_ai_direction_kd_change(self):
-		self.robot_controller.pid_line_following.kd = float(self.slider_ai_direction_kd['value'])
-		self.text_ai_direction_kd.setText("AI Direction Kd " + str(round(self.robot_controller.pid_line_following.kd,1)))
+	
+	def slider_cornering_speed_change(self):
+		self.robot_controller.cornering_speed = float(self.slider_cornering_speed['value'])
+		self.text_cornering_speed.setText("Vmax " + str(round(self.robot_controller.cornering_speed,1))+"m/s")
 
 	def slider_steering_k_speed_change(self):
 		self.robot_controller.steering_k_speed = float(self.slider_steering_k_speed['value'])
 		self.text_steering_k_speed.setText("Steering K speed " + str(round(self.robot_controller.steering_k_speed,2)))
-
-	def slider_ai_direction_k_speed_change(self):
-		self.robot_controller.ai_direction_k_speed = float(self.slider_ai_direction_k_speed['value'])
-		self.text_ai_direction_k_speed.setText("AI Direction K speed " + str(round(self.robot_controller.ai_direction_k_speed,2)))
 
 	def slider_ai_direction_alpha_change(self):
 		self.robot_controller.ai_direction_alpha = float(self.slider_ai_direction_alpha['value'])
@@ -617,8 +585,6 @@ class MyApp(ShowBase):
 		self.world.doPhysics(dt)
 		#world.doPhysics(dt, 10, 1.0/180.0)
 
-		self.target_image.setPos( (-self.robot_controller.line_pos-0.005, 0.0, 0.0) )
-
 
 		return task.cont
 
@@ -766,32 +732,6 @@ class MyApp(ShowBase):
 		#self.directionalLightNP.node().setShadowCaster(True, 512, 512)
 		self.render.setShaderAuto()
 
-	def update_toulouse_map(self, task):
-
-		if task.frame % 200 == 0:
-			if self.apply_ground_shadow:
-				self.sol_shadow_texture_index += 1
-				if self.sol_shadow_texture_index >= len(self.sol_shadow_textures):
-					self.sol_shadow_texture_index = 0
-				self.solNodePath.setTexture(self.ts2, self.sol_shadow_textures[self.sol_shadow_texture_index])
-
-		#print(str(self.temperature))
-		if self.apply_light_modifier:
-			if self.temperature_step > 0:
-				self.temperature += self.temperature_step*10
-				self.directionalLight.setColorTemperature(self.temperature)
-				self.plight.setColorTemperature(self.temperature)
-				if self.temperature > 11900:
-					self.temperature_step = -1
-			else:
-				self.temperature += self.temperature_step*10
-				self.directionalLight.setColorTemperature(self.temperature)
-				self.plight.setColorTemperature(self.temperature)
-				if self.temperature < 1100:
-					self.temperature_step = 1
-		
-		return Task.cont
-
 	def doQuit(self):
         # De-initialization code goes here!
 		self.quit = True
@@ -804,36 +744,6 @@ class MyApp(ShowBase):
         # De-initialization code goes here!
 		self.autopilot = False
 
-	def doRecord(self):
-        # De-initialization code goes here!
-		self.recording = True
-
-	def setGroundShadow(self):
-		if self.apply_ground_shadow:
-			self.apply_ground_shadow = False
-			self.solNodePath.setTexture(self.ts2, self.sol_no_shadow_texture)
-		else:
-			self.apply_ground_shadow = True
-			self.sol_shadow_texture_index = 0
-			self.solNodePath.setTexture(self.ts2, self.sol_shadow_textures[self.sol_shadow_texture_index])
-			self.sol_shadow_texture_index += 1
-
-	def setSidePublicityAndShadow(self):
-		if self.apply_side_publicity_and_shadow:
-			self.apply_side_publicity_and_shadow = False
-			self.bordureNodePath.setTexture(self.ts3, self.side_no_shadow_texture)
-			self.bordureNodePath.setTexture(self.ts4, self.side_base_texture_no_publicity, 1)
-		else:
-			self.apply_side_publicity_and_shadow = True
-			self.bordureNodePath.setTexture(self.ts3, self.side_shadow_texture)
-			self.bordureNodePath.setTexture(self.ts4, self.side_base_texture_with_publicity, 1)
-
-	def setLightModifier(self):
-		if self.apply_light_modifier:
-			self.apply_light_modifier = False
-		else:
-			self.apply_light_modifier = True
-
 	def setHome(self):
 		self.chassisNP.setPos(0, 10.0, 0.2)
 		self.chassisNP.setHpr(180, 0.0, 0.0)
@@ -841,38 +751,11 @@ class MyApp(ShowBase):
 		self.total_distance = 0
 		self.lap_distance = 0
 
-	def get_camera_image(self, requested_format=None):
-		"""
-		Returns the camera's image, which is of type uint8 and has values
-		between 0 and 255.
-		The 'requested_format' argument should specify in which order the
-		components of the image must be. For example, valid format strings are
-		"RGBA" and "BGRA". By default, Panda's internal format "BGRA" is used,
-		in which case no data is copied over.
-		"""
-		tex = self.dr.getScreenshot()
-		if requested_format is None:
-		    data = tex.getRamImage()
-		else:
-		    data = tex.getRamImageAs(requested_format)
-		image = np.frombuffer(data, np.uint8)  # use data.get_data() instead of data in python 2
-		image.shape = (tex.getYSize(), tex.getXSize(), tex.getNumComponents())
-		image = np.flipud(image)
-		return image
-
 ## MAIN ########################################################################
 
 print("Init telemetry server...")
 #tserver = telemetry_server("192.168.1.34", 7001)
 #####tserver = telemetry_server("192.168.43.5", 7001)
-print("Done!")
-
-print("Create dataset file...")
-try:
-    mkdir(root_dir+'/'+dataset_dir)
-except FileExistsError:
-    pass
-dataset_file = open(root_dir+'/'+dataset_dir+'/'+'dataset.txt',  'w')
 print("Done!")
 
 print("Init external robot controller...")
@@ -886,33 +769,13 @@ print("Done!")
 
 # game loop
 counter = 0
-record_counter = 0
 print("Start sim engine loop...")
 while not app.quit:
 	# Non blocking call
 	asyncore.loop(timeout=0, count=1)
 	# game tick
 	taskMgr.step()
-	# get picture for CNN
-	frame_orign = app.get_camera_image()
-	# supress alpha channel
-	frame_orign = frame_orign[:, :, 0:3] 
-	#resize to CNN input format
-	frame_orign = cv2.resize(frame_orign, (160, 90),   interpolation = cv2.INTER_AREA)
-	# smotth and gray scale
-	frame = cv2.blur(frame_orign,(3,3))
-	frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-	# reshape for CNN
-	frame = frame.reshape(90,160,1)
-	# use CNN
-	app.robot_controller.frame_update(frame.reshape(1,90,160,1))
-	# dataset recording
-	if app.recording and counter != 0: #and not app.autopilot : # first frame buffer is empty, skip it!
-		filename = dataset_dir + '/render_' + str(record_counter) + '.jpg'
-		cv2.imwrite(root_dir + '/' + filename, frame_orign) 
-		dataset_file.write(filename +';' + str(int(128.0-app.steering*127.0*1.4)) + ';' + str(int(app.throttle*127.0*1.4+128.0)) + '\n') # *1.4 gain
-		dataset_file.flush()
-		record_counter += 1
+	
 	# Telemetry
 	if True:
 	#if counter % 2 == 0:
@@ -930,9 +793,6 @@ while not app.quit:
 		msg += str( float(app.robot_controller.actual_speed_error_ms) ) + ';'
 		msg += str( float(app.throttle) ) + ';' 
 
-		msg += str( float(app.robot_controller.line_pos) ) + ';'
-		msg += str( float(app.robot_controller.pid_line) ) + ';' 
-
 		msg += str( float(app.robot_controller.ratio_ai*10) ) + ';' 
 
 
@@ -946,8 +806,7 @@ while not app.quit:
 	counter += 1
 	#print(telemetry_client_connected)
 
-dataset_file.close()
-print('m:' + str(record_counter))
+
 
     
     

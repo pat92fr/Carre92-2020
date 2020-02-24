@@ -1,0 +1,3 @@
+Ajoueter odométrie et mieux gérer la vitesse avec RAZ au passage sous portique.
+
+Intégrer modèle de piste plus simple
