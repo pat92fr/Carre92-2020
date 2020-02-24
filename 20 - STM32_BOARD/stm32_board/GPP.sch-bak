@@ -2028,21 +2028,21 @@ Text Label 12450 4450 0    50   ~ 0
 SCL
 Text Label 12450 4550 0    50   ~ 0
 SDA
-Text Label 10750 3950 2    50   ~ 0
-LED1
-Text Label 12450 6850 0    50   ~ 0
-LED6
-Text Label 10750 4150 2    50   ~ 0
-LED3
-Text Label 10750 4250 2    50   ~ 0
-LED4
-Text Label 10750 4450 2    50   ~ 0
-LED5
-Text Label 10750 4050 2    50   ~ 0
-LED2
-Text Label 12450 6950 0    50   ~ 0
-LED7
 Text Label 12450 7050 0    50   ~ 0
+LED1
+Text Label 10750 4150 2    50   ~ 0
+LED6
+Text Label 12450 6850 0    50   ~ 0
+LED3
+Text Label 10750 4450 2    50   ~ 0
+LED4
+Text Label 10750 4250 2    50   ~ 0
+LED5
+Text Label 12450 6950 0    50   ~ 0
+LED2
+Text Label 10750 4050 2    50   ~ 0
+LED7
+Text Label 10750 3950 2    50   ~ 0
 LED8
 Text Label 12450 5550 0    50   ~ 0
 Button1
