@@ -8,6 +8,7 @@ steering_clamp = 35.0      # degree
 steering_increment = 360.0 # 160 degree per second
 
 root_dir = 'c:/tmp'
+media_dir = '/c/tmp/mediaTRR/'
 
 ## GLOBALS ########################################################################
 
@@ -155,7 +156,7 @@ class MyApp(ShowBase):
 		self.disableMouse()
 
         # load the environment model.
-		self.scene = self.loader.loadModel("/c/tmp/media/env")
+		self.scene = self.loader.loadModel(media_dir + "env")
 		self.scene.reparentTo(self.render)
 		self.scene.setScale(35, 35, 35)
 		self.scene.setPos(0,25, -0.01)
@@ -195,7 +196,7 @@ class MyApp(ShowBase):
 		self.chassisNP = self.worldNP.attachNewNode(self.chassisPhysNode)
 		self.world.attachRigidBody(self.chassisPhysNode)
 
-		model = loader.loadModel('/c/tmp/media/chassis.bam')
+		model = loader.loadModel(media_dir + "chassis.bam")
 		model.setHpr(0, 90, 0)
 		model.setPos(0, 0, 0.02)
 		model.reparentTo(self.chassisNP)
@@ -204,19 +205,19 @@ class MyApp(ShowBase):
 		self.vehicle.setCoordinateSystem(bullet.ZUp)
 		self.world.attachVehicle(self.vehicle)
 
-		FRwheelNP = loader.loadModel('/c/tmp/media/wheel.bam')
+		FRwheelNP = loader.loadModel(media_dir + "wheel.bam")
 		FRwheelNP.reparentTo(self.worldNP)
 		self.addWheel(Point3(0.10, 0.14, 0.40), True, FRwheelNP)
 
-		FLwheelNP = loader.loadModel('/c/tmp/media/wheel.bam')
+		FLwheelNP = loader.loadModel(media_dir + "wheel.bam")
 		FLwheelNP.reparentTo(self.worldNP)
 		self.addWheel(Point3(-0.10, 0.14, 0.40), True, FLwheelNP)
 
-		RRwheelNP = loader.loadModel('/c/tmp/media/wheel.bam')
+		RRwheelNP = loader.loadModel(media_dir + "wheel.bam")
 		RRwheelNP.reparentTo(self.worldNP)
 		self.addWheel(Point3(0.10, -0.14, 0.40), False, RRwheelNP)
 
-		RLwheelNP = loader.loadModel('/c/tmp/media/wheel.bam')
+		RLwheelNP = loader.loadModel(media_dir + "wheel.bam")
 		RLwheelNP.reparentTo(self.worldNP)
 		self.addWheel(Point3(-0.10, -0.14, 0.40), False, RLwheelNP)
 
@@ -286,7 +287,7 @@ class MyApp(ShowBase):
 		self.heading =  self.chassisNP.getH()+90.0
 		self.last_heading =  self.chassisNP.getH()+90.0
 		self.total_distance = 0.0
-		self.lap_distance = 0.0
+		self.lap_distance = 100.0 # 10m before start line
 
 		# simulator speed control state
 		self.delta_distance = 0.0 # m
@@ -337,7 +338,7 @@ class MyApp(ShowBase):
 		# heading
 		self.heading = 0.0
 		self.heading_text = OnscreenText(text=str(int(self.heading)) +"deg", pos=(1.7,0.4), fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.05)
-		self.slider_max_speed = DirectSlider(range=(0,10), value=self.robot_controller.max_speed_ms, pageSize=0.1, command=self.slider_max_speed_change, scale=0.4, pos = (0.0,0.0,0.9))
+		self.slider_max_speed = DirectSlider(range=(0,20), value=self.robot_controller.max_speed_ms, pageSize=0.1, command=self.slider_max_speed_change, scale=0.4, pos = (0.0,0.0,0.9))
 		self.text_max_speed = OnscreenText(text="Vmax " + str(self.robot_controller.max_speed_ms)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.9))
 		self.slider_cornering_speed = DirectSlider(range=(0,10), value=self.robot_controller.cornering_speed, pageSize=0.1, command=self.slider_cornering_speed_change, scale=0.4, pos = (0.0,0.0,0.85))
 		self.text_cornering_speed = OnscreenText(text="Vcor " + str(self.robot_controller.cornering_speed)+"m/s", fg=(1, 1, 1, 1), align=TextNode.ARight, shadow=(0, 0, 0, 0.5), scale=.04, pos=(-0.55,0.85))
@@ -358,7 +359,7 @@ class MyApp(ShowBase):
 	
 	def slider_cornering_speed_change(self):
 		self.robot_controller.cornering_speed = float(self.slider_cornering_speed['value'])
-		self.text_cornering_speed.setText("Vmax " + str(round(self.robot_controller.cornering_speed,1))+"m/s")
+		self.text_cornering_speed.setText("Vcor " + str(round(self.robot_controller.cornering_speed,1))+"m/s")
 
 	def slider_steering_k_speed_change(self):
 		self.robot_controller.steering_k_speed = float(self.slider_steering_k_speed['value'])
@@ -560,7 +561,7 @@ class MyApp(ShowBase):
 			self.steering, self.throttle = self.robot_controller.process(
 				dt,
 				self.actual_speed_ms,
-				self.total_distance,
+				self.lap_distance,
 				self.lidar_distance_droit,
 				self.lidar_distance_gauche,
 				self.lidar_distance_haut
@@ -577,7 +578,7 @@ class MyApp(ShowBase):
 			self.steering = constraint(self.steering, -self.steering_clamp, self.steering_clamp)
 
 		if self.throttle >= 0.0:
-			self.engineForce = self.throttle*1.0
+			self.engineForce = self.throttle*2.0
 			self.engineForce = min(self.engineForce, 5.0)
 			self.engineForce = max(self.engineForce, 0.0)
 			self.brakeForce = 0.0
@@ -610,12 +611,12 @@ class MyApp(ShowBase):
 	def load_toulouse_map(self):
 
         # load circuit model
-		self.solNodePath = self.loader.loadModel("/c/tmp/media/sol.bam")
-		self.lignenoireNodePath = self.loader.loadModel("/c/tmp/media/lignenoire.bam")
-		self.ligneblancheNodePath = self.loader.loadModel("/c/tmp/media/ligneblanche.bam")
-		self.bordureNodePath = self.loader.loadModel("/c/tmp/media/bordure.bam")
+		self.solNodePath = self.loader.loadModel(media_dir + "sol.bam")
+		self.lignenoireNodePath = self.loader.loadModel(media_dir + "lignenoire.bam")
+		self.ligneblancheNodePath = self.loader.loadModel(media_dir + "ligneblanche.bam")
+		self.bordureNodePath = self.loader.loadModel(media_dir + "bordure.bam")
 		self.bordureNodePath.setCollideMask(BitMask32.bit(2))
-		self.archNodePath = self.loader.loadModel("/c/tmp/media/arch.bam")
+		self.archNodePath = self.loader.loadModel(media_dir + "arch.bam")
 
 		# print(str(TextureStage.getDefault()))
 		# print(str(self.solNodePath.findAllTextureStages()))
@@ -623,7 +624,7 @@ class MyApp(ShowBase):
 		# print(str(self.solNodePath.findAllTextures()))
 
 		# replace base texture for sol
-		tex1 = loader.loadTexture('/c/tmp/media/sol_toulouse.jpg')
+		tex1 = loader.loadTexture(media_dir + "sol_toulouse.jpg")
 		#tex1 = loader.loadTexture('/c/tmp/media/sol_NormalMap.jpg')
 		#tex1 = loader.loadTexture('/c/tmp/media/sol_DisplacementMap.jpg')
 		self.ts1 = self.solNodePath.findTextureStage('0')
@@ -631,16 +632,7 @@ class MyApp(ShowBase):
 		self.solNodePath.setTexture(self.ts1, tex1, 1)
 
 		# add texture for illumination of sol
-		self.sol_no_shadow_texture = loader.loadTexture('/c/tmp/media/no_shadow.png')
-		self.sol_shadow_textures = [ 
-			loader.loadTexture('/c/tmp/media/sol_shadow_1.png'),
-			loader.loadTexture('/c/tmp/media/sol_shadow_2.png'),
-			loader.loadTexture('/c/tmp/media/sol_shadow_3.png'),
-			loader.loadTexture('/c/tmp/media/sol_shadow_4.png'),
-			loader.loadTexture('/c/tmp/media/sol_shadow_5.png'),
-			loader.loadTexture('/c/tmp/media/sol_shadow_6.png'),
-			loader.loadTexture('/c/tmp/media/sol_shadow_7.png')
-		]
+		self.sol_no_shadow_texture = loader.loadTexture(media_dir + "no_shadow.png")
 		self.sol_shadow_texture_index = 0
 		self.ts2 = TextureStage('solTS')
 		self.ts2.setMode(TextureStage.MModulate)
@@ -648,24 +640,16 @@ class MyApp(ShowBase):
 		self.ts2.setColor(LColor(0,0,0,1))
 		self.solNodePath.setTexture(self.ts2, self.sol_no_shadow_texture)
 
-		# add texture for normalmap of sol
-		tex4 = loader.loadTexture('/c/tmp/media/sol_NormalMap.jpg','/c/tmp/media/sol_DisplacementMap.jpg')
-		ts4 = TextureStage('solTSNM')
-		ts4.setMode(TextureStage.MNormalHeight)
-		ts4.setTexcoordName('0')
-		#self.solNodePath.setTexture(ts4, tex4)
-
-
 		# replace base texture for side
-		self.side_base_texture_no_publicity = loader.loadTexture('/c/tmp/media/2create_wood_0019o.jpg')
-		self.side_base_texture_with_publicity = loader.loadTexture('/c/tmp/media/2create_wood_0019.jpg')
+		self.side_base_texture_no_publicity = loader.loadTexture(media_dir + "2create_wood_0019o.jpg")
+		self.side_base_texture_with_publicity = loader.loadTexture(media_dir + "2create_wood_0019.jpg")
 		self.ts4 = self.bordureNodePath.findTextureStage('0')
 		self.ts4.setTexcoordName('0')
 		self.bordureNodePath.setTexture(self.ts4, self.side_base_texture_no_publicity, 1)
 
 		# add texture for illumination of bordure
-		self.side_no_shadow_texture = loader.loadTexture('/c/tmp/media/no_shadow.png')
-		self.side_shadow_texture = loader.loadTexture('/c/tmp/media/side_shadow.png')
+		self.side_no_shadow_texture = loader.loadTexture(media_dir + "no_shadow.png")
+		self.side_shadow_texture = loader.loadTexture(media_dir + "no_shadow.png")
 		self.ts3 = TextureStage('sideTS')
 		self.ts3.setMode(TextureStage.MModulate)
 		self.ts3.setTexcoordName('0')
@@ -767,8 +751,8 @@ class MyApp(ShowBase):
 		self.chassisNP.setPos(0, 10.0, 0.2)
 		self.chassisNP.setHpr(180, 0.0, 0.0)
 		self.lap_counter = 0
-		self.total_distance = 0
-		self.lap_distance = 0
+		self.total_distance = 0.0
+		self.lap_distance = 100.0
 
 ## MAIN ########################################################################
 

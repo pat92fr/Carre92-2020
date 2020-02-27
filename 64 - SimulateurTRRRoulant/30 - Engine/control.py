@@ -6,14 +6,14 @@ class robot_controller:
 	def __init__(self):
 
 		# speed controller settings
-		self.min_speed_ms = 1.0 # 1.0 m/s
-		self.cornering_speed = 1.0
-		self.max_speed_ms = 1.0 # 10 m/s
+		self.min_speed_ms = 2.0 # 1.0 m/s
+		self.cornering_speed = 3.0
+		self.max_speed_ms = 10.0 # 10 m/s
 
 		self.acceleration = 0.1 # m/s per 1/60eme
 		self.deceleration = 0.5 # m/s per 1/60eme
 
-		self.pid_speed = my_controller.pid(kp=0.2, ki=0.0, kd=0.0, integral_max=1000, output_max=1.0, alpha=0.5) 
+		self.pid_speed = my_controller.pid(kp=0.3, ki=0.0, kd=0.1, integral_max=1000, output_max=1.0, alpha=0.5) 
 		self.pid_speed_kff = 0.0 # feed forward apart from speed PID
 		self.steering_k_speed = 0.0
 
@@ -22,12 +22,11 @@ class robot_controller:
 		self.target_speed_ms = 0.0 # m/s (square)
 		self.current_speed_ms = 0.0 # m/s (trapeze)
 		self.actual_speed_ms = 0.0 # m/s from encoder (real)
-		self.actual_speed_kmh = 0.0 # km.h from encoder
 		self.actual_speed_error_ms = 0.0 # m/s
 
 		# lidar steering controller settings
-		self.pid_wall_following = my_controller.pid(kp=1.0, ki=0.0, kd=0.0, integral_max=1000, output_max=1.0, alpha=0.2) 
-		self.lidar_direction_k_speed = 0.0
+		self.pid_wall_following = my_controller.pid(kp=0.6, ki=0.0, kd=8.0, integral_max=1000, output_max=1.0, alpha=0.2) 
+		self.lidar_direction_k_speed = 0.2
 		self.lidar_maximum_distance = 2.0
 
 		# lidar steering controller state
@@ -67,6 +66,8 @@ class robot_controller:
 		lidar_distance_haut
 		 ):
 
+		# copy 
+		self.actual_speed_ms = actual_speed_ms
 
 		# controlled state
 		steering = 0.0
@@ -113,6 +114,9 @@ class robot_controller:
 		throttle = self.pid_speed.compute(self.actual_speed_error_ms) + self.pid_speed_kff *self.current_speed_ms
 		throttle = constraint(throttle, -1.0, 1.0)
 
+		print("target_speed_ms:" + str(self.target_speed_ms) + "m/s     "
+			+ "actual_speed_ms:" + str(self.actual_speed_ms) + "m/s     "
+			+ "throttle:" + str(throttle) )
 
 		# controlled state
 		return steering, throttle
