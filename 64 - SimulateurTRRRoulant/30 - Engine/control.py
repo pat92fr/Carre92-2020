@@ -6,11 +6,11 @@ class robot_controller:
 	def __init__(self):
 
 		# speed controller settings
-		self.min_speed_ms = 2.5 # 1.0 m/s
+		self.min_speed_ms = 3.5 # 1.0 m/s
 		self.cornering_speed = 4.5
-		self.max_speed_ms = 12.0 # 10 m/s
+		self.max_speed_ms = 20.0 # 10 m/s
 
-		self.acceleration = 0.15 # m/s per 1/60eme
+		self.acceleration = 0.2 # m/s per 1/60eme
 		self.deceleration = 0.6 # m/s per 1/60eme
 
 		self.pid_speed = my_controller.pid(kp=0.3, ki=0.0, kd=0.1, integral_max=1000, output_max=1.0, alpha=0.5) 
@@ -25,7 +25,7 @@ class robot_controller:
 		self.actual_speed_error_ms = 0.0 # m/s
 
 		# lidar steering controller settings
-		self.pid_wall_following = my_controller.pid(kp=1.0, ki=0.0, kd=20.0, integral_max=1000, output_max=1.0, alpha=0.2) 
+		self.pid_wall_following = my_controller.pid(kp=0.9, ki=0.0, kd=25.0, integral_max=1000, output_max=1.0, alpha=0.2) 
 		self.lidar_direction_k_speed = 0.4
 		self.lidar_maximum_distance = 2.0
 
@@ -37,7 +37,7 @@ class robot_controller:
 		self.ratio_ai = 1.0
 
 		# steering settings
-		self.ration_ai_x1 = 0.05 #
+		self.ration_ai_x1 = 0.0 #
 		self.ration_ai_x2 = 0.3 #
 
 		print("Done.")
@@ -45,13 +45,13 @@ class robot_controller:
 	# speed strategy
 	def max_speed_from_distance(self, distance):
 		distance = distance % 110.0
-		if distance > 0.0 and distance < 4.0:
+		if distance > 0.0 and distance < 2.0: # 4.0 initialement
 			return self.max_speed_ms
-		elif distance > 15.0 and distance < 25.0:
+		elif distance > 15.0 and distance < 24.0: # 25.0 initialement
 			return self.max_speed_ms
-		elif distance > 45.0 and distance < 55.0:
+		elif distance > 45.0 and distance < 54.0: # 55.0 initialement
 			return self.max_speed_ms
-		elif distance > 65.0 and distance < 120.0:
+		elif distance > 65.0:
 			return self.max_speed_ms
 		else:
 			return self.cornering_speed
@@ -67,7 +67,7 @@ class robot_controller:
 			return 0.0, 0.0
 
 		elif distance >= 5.0 and distance < 15.0: # premier virage
-			return 0.8, 0.0 # 0.6 0.0
+			return 0.85, 0.0 # 0.6 0.0
 
 		elif distance >= 15.0 and distance < 26.0: # ligne droite avant chicane
 			return 0.0, 0.0
@@ -79,7 +79,7 @@ class robot_controller:
 			return 0.0, 0.0
 
 		elif distance >= 56.0 and distance < 65.0: # dernier virage
-			return 0.8, 0.0 # 0.6 0.0
+			return 0.85, 0.0 # 0.6 0.0
 
 		elif distance > 65.0 and distance < 120.0: # grande ligne droite
 			return 0.0, 0.0

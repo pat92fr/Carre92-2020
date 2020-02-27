@@ -578,13 +578,13 @@ class MyApp(ShowBase):
 			self.steering = constraint(self.steering, -self.steering_clamp, self.steering_clamp)
 
 		if self.throttle >= 0.0:
-			self.engineForce = self.throttle*2.0
-			self.engineForce = min(self.engineForce, 5.0)
+			self.engineForce = self.throttle*3.0
+			self.engineForce = min(self.engineForce, 6.0)
 			self.engineForce = max(self.engineForce, 0.0)
 			self.brakeForce = 0.0
 		else:
-			self.brakeForce = -self.throttle*1.0
-			self.brakeForce = min(self.brakeForce, 5.0)
+			self.brakeForce = -self.throttle*1.5
+			self.brakeForce = min(self.brakeForce, 6.0)
 			self.brakeForce = max(self.brakeForce, 0.0)
 			self.engineForce = 0.0
 
