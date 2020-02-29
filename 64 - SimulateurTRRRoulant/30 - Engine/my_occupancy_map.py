@@ -18,7 +18,7 @@ class occupancy_map:
 
     def load(self,filename):
         img = Image.open(filename)
-        self.carto = np.array(img)
+        self.carto = np.array(img).T
         self.carto = cv2.GaussianBlur(self.carto,(5,5),0)
         self.carto = cv2.GaussianBlur(self.carto,(3,3),0)
 
@@ -39,17 +39,26 @@ class occupancy_map:
             self.carto,
             (int(rescaled_origin[1]),int(rescaled_origin[0])),
             (int(rescaled_end[1]),int(rescaled_end[0])),
-            0,
+            0, #color 0 = visited, no obstacle
             2)
         if collision:
             cv2.circle(
                 self.carto,
                 (int(rescaled_end[1]),int(rescaled_end[0])),
                 3, 
-                255, 
-                -1)
+                255,  #color 255 = visited, obstacle
+                -1) # filled
 
-    def valid_position(self,particle):
-        x,y,a,w = particle
+    def valid_position(self,x,y):
         valid = self.carto[x,y] == 0
         return valid
+
+    def test_ray(self,origin,end,):
+        rescaled_origin = origin*self.carto_scale+self.carto_offset
+        rescaled_end = end*self.carto_scale+self.carto_offset
+        color = self.carto[int(rescaled_end[1]),int(rescaled_end[0])] 
+        if color <= 128:
+            return 0.0
+        else:
+            return (float(color)-128.0)/128.0
+
