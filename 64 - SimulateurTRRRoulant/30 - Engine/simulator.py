@@ -256,7 +256,7 @@ class MyApp(ShowBase):
 		self.LidarRightCNP.show()
 
 		#self.chassisNP.setPos(0, 40.0, 0.05)
-		self.chassisNP.setPos(0, 10.0, 0.2)
+		self.chassisNP.setPos(0, 10.0, 0.15 )
 		self.chassisNP.setHpr(180, 0.0, 0.0)
 
 		# camera
@@ -518,6 +518,8 @@ class MyApp(ShowBase):
 			-self.current_position.getY(), # real position x
 			self.current_position.getX(), # real position y 
 			self.heading+90.0, # real position h
+			self.lidar_distance_gauche,
+			self.lidar_distance_droit
 		) #see external note : Repères simulateur.txt
 
 # Repère 3D du simulateur (rendu3D)
