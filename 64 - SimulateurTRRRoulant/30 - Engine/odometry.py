@@ -9,18 +9,21 @@ from my_math import *
 
 class robot_odometry:
 
-	def __init__(self):
+	def __init__(self, origin_x, origin_y, origin_h):
 
 		self.ignore_counter = 120 #ignore first frames
 
 		# odometry
-		self.odom = my_odometry.odometry( 0.0, 0.0, 0.0)
+		self.odom = my_odometry.odometry(origin_x, origin_y, origin_h)
 
 	def process(
 		self,
 		dt,
 		actual_speed_ms,
-		actual_rotation_speed_dps
+		actual_rotation_speed_dps,
+		real_position_x,
+		real_position_y,
+		real_position_h
 		 ):
 
 		# wait for 3D/Phys stabilize
@@ -35,3 +38,6 @@ class robot_odometry:
 		# update (v,w)t X (x,y,h)t-1 => (x,y,h)t
 		self.odom.update(actual_speed_ms,actual_rotation_speed_dps,dt)
 		self.odom.print()
+
+		# real position
+		print("real x:" + str(round(real_position_x,2)) + "m   y:" + str(round(real_position_y,2)) + "m   h:" + str(round(real_position_h,2)) +"deg" )
