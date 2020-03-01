@@ -53,6 +53,10 @@ class slam:
 		#debug by tracing position and observation on a picture and save it regularly TODO
 		#debug by tracing position and observation on a picture and save it regularly TODO
 		#debug by tracing position and observation on a picture and save it regularly TODO
+		# trace real position
+		# trace slam position
+		# trace observations
+
 
 	def print(self):
 		print("slam x:" + str(round(self.x,2)) + "m   y:" + str(round(self.y,2)) + "m   h:" + str(round(self.h,2)) +"deg" )
