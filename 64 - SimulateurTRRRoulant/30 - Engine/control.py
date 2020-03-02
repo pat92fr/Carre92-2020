@@ -7,8 +7,8 @@ class robot_controller:
 
 		# speed controller settings
 		self.min_speed_ms = 3.5 # 1.0 m/s
-		self.cornering_speed = 4.5
-		self.max_speed_ms = 20.0 # 10 m/s
+		self.cornering_speed = 5.0
+		self.max_speed_ms = 13.0 # 10 m/s
 
 		self.acceleration = 0.2 # m/s per 1/60eme
 		self.deceleration = 0.6 # m/s per 1/60eme
@@ -152,9 +152,9 @@ class robot_controller:
 		throttle = self.pid_speed.compute(self.actual_speed_error_ms) + self.pid_speed_kff *self.current_speed_ms
 		throttle = constraint(throttle, -1.0, 1.0)
 
-		print("target_speed_ms:" + str(self.target_speed_ms) + "m/s     "
-			+ "actual_speed_ms:" + str(self.actual_speed_ms) + "m/s     "
-			+ "throttle:" + str(throttle) )
+		# print("target_speed_ms:" + str(self.target_speed_ms) + "m/s     "
+		# 	+ "actual_speed_ms:" + str(self.actual_speed_ms) + "m/s     "
+		# 	+ "throttle:" + str(throttle) )
 
 		# controlled state
 		return steering, throttle

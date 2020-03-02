@@ -1,0 +1,22 @@
+Repère 3D du simulateur (rendu3D)
+
+Face à l'arche, à 10m de distance :
+	Position de départ (X=0, Y=10, H=-90°)
+	X pointe vers la gauche
+	Y pointe vers l'arrière
+	Le cap est bien de -90° (par rapport à l'axe XoY)
+
+
+Repère de l'odométrie (slam)
+
+Face à l'arche, à 10m de distance
+	Position de départ (x=-10, y=0, h=0)
+	x pointe vers l'avant
+	y pointe vers la gauche
+	Le cap est de 0° (axe x)
+
+La conversion 3D vers SLAM est donc 
+	x = -Y
+	y = X
+	h = H +90
+ 

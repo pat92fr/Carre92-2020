@@ -2100,7 +2100,6 @@ Text Label 11000 2100 0    50   ~ 0
 A
 Text Label 11000 1700 0    50   ~ 0
 B
-NoConn ~ 9300 6500
 NoConn ~ 11000 2000
 NoConn ~ 11000 2400
 NoConn ~ 11000 2500

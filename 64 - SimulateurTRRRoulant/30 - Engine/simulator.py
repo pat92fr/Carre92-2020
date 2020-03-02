@@ -256,7 +256,7 @@ class MyApp(ShowBase):
 		self.LidarRightCNP.show()
 
 		#self.chassisNP.setPos(0, 40.0, 0.05)
-		self.chassisNP.setPos(0, 10.0, 0.2)
+		self.chassisNP.setPos(0, 10.0, 0.15 )
 		self.chassisNP.setHpr(180, 0.0, 0.0)
 
 		# camera
@@ -503,14 +503,46 @@ class MyApp(ShowBase):
 		self.heading = (self.heading + 180.0) % 360.0 - 180.0
 		self.delta_heading = self.heading - self.last_heading
 		self.actual_rotation_speed_dps = self.delta_heading/dt
+
+		# OSD position
+		# for 3D position :
 		self.heading_text.setText('(' + str(round(self.current_position.getX(),1)) +',' + str(round(self.current_position.getY(),1)) +')   ' + str(int(self.heading))+ "deg")
+		# for SLAM position :
+		self.heading_text.setText('(' + str(round(-self.current_position.getY(),1)) +',' + str(round(self.current_position.getX(),1)) +')   ' + str(int(self.heading+90.0))+ "deg")
 
 		# odometry
 		self.robot_odometry.process(
 			dt,
 			self.actual_speed_ms, # + gaussian_noise(0.0,0.3),
 			self.actual_rotation_speed_dps, #+ gaussian_noise(self.gyro_bias*1.0,3.0), #+ gaussian_noise(self.gyro_bias,2.0),
-		)
+			-self.current_position.getY(), # real position x
+			self.current_position.getX(), # real position y 
+			self.heading+90.0, # real position h
+			self.lidar_distance_gauche,
+			self.lidar_distance_droit
+		) #see external note : Repères simulateur.txt
+
+# Repère 3D du simulateur (rendu3D)
+
+# Face à l'arche, à 10m de distance :
+# 	Position de départ (X=0, Y=10, H=-90°)
+# 	X pointe vers la gauche
+# 	Y pointe vers l'arrière
+# 	Le cap est bien de -90° (par rapport à l'axe XoY)
+
+
+# Repère de l'odométrie (slam)
+
+# Face à l'arche, à 10m de distance
+# 	Position de départ (x=-10, y=0, h=0)
+# 	x pointe vers l'avant
+# 	y pointe vers la gauche
+# 	Le cap est de 0° (axe x)
+
+# La conversion 3D vers SLAM est donc 
+# 	x = -Y
+# 	y = X
+# 	h = H +90
 
 		# chose controller
 		if not self.autopilot: # manual controller
@@ -766,7 +798,7 @@ rc = control.robot_controller();
 print("Done!")
 
 print("Init external robot odometry...")
-odom = odometry.robot_odometry(); 
+odom = odometry.robot_odometry(-10.0, 0.0, 0.0); 
 print("Done!")
 
 print("Init sim engine...")
