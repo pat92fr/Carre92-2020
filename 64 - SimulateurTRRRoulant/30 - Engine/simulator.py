@@ -22,6 +22,7 @@ import numpy as np
 import math
 import cv2
 from os import mkdir
+import matplotlib.pyplot as plt
 
 import socket
 import asyncore
@@ -805,6 +806,12 @@ print("Init sim engine...")
 app = MyApp(rc,odom)
 print("Done!")
 
+# SLAM debug
+x_real = []
+y_real = []
+x_slam = []
+y_slam = []
+
 # game loop
 counter = 0
 print("Start sim engine loop...")
@@ -814,6 +821,15 @@ while not app.quit:
 	# game tick
 	taskMgr.step()
 	
+	# SLAM debug
+	x_real.append(-app.current_position.getY())
+	y_real.append(app.current_position.getX())
+	x_slam.append(app.robot_odometry.odom.x)
+	y_slam.append(app.robot_odometry.odom.y)
+
+
+
+
 	# Telemetry
 	if True:
 	#if counter % 2 == 0:
@@ -846,7 +862,10 @@ while not app.quit:
 
 
 
-    
+plt.scatter(x_real, y_real, c='coral')
+plt.scatter(x_slam, y_slam, c='lightblue')
+plt.show()
+
     
 
 
