@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP AS5048A
+D Magnetic position sensor, 14-bit, PWM output, SPI Interface, TSSOP-14
+K sensor magnetic hall position rotation spi
+F https://ams.com/documents/20143/36005/AS5048_DS000298_4-00.pdf
+$ENDCMP
+#
+#End Doc Library
