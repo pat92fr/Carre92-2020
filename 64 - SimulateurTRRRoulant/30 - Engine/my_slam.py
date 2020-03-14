@@ -49,13 +49,7 @@ class slam:
 		p2 = self.occupacy_map.test_ray(origin,end2)
 		print("slam p1:" + str(round(p1,2)) + "    p2:" + str(round(p2,2)) )
 
-		#debug by tracing position and observation on a picture and save it regularly TODO
-		#debug by tracing position and observation on a picture and save it regularly TODO
-		#debug by tracing position and observation on a picture and save it regularly TODO
-		#debug by tracing position and observation on a picture and save it regularly TODO
-		# trace real position
-		# trace slam position
-		# trace observations
+		#TODO
 
 
 	def print(self):
