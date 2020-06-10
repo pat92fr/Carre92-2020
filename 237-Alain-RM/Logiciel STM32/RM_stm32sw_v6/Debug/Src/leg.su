@@ -1,0 +1,6 @@
+leg.c:23:6:Leg_Init	24	static
+leg.c:44:6:Leg_SetStartPos	72	static
+leg.c:59:6:Leg_Activate	16	static
+leg.c:69:6:Leg_Deactivate	16	static
+leg.c:79:6:Leg_GetAnglePos	144	static
+leg.c:114:6:Leg_SetPos	96	static

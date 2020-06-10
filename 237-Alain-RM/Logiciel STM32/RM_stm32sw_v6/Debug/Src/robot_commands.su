@@ -1,0 +1,7 @@
+robot_commands.c:24:6:Robot_ReadCommand_Folded	16	static
+robot_commands.c:48:6:Robot_ReadCommand_Ready	32	static
+robot_commands.c:107:6:Robot_ReadCommand_Running	32	static
+robot_commands.c:153:6:Robot_ReadCommand_Config	216	static
+robot_commands.c:425:6:Robot_ReadCommand	16	static
+robot_commands.c:460:6:Robot_ButtonPushed	8	static
+robot_commands.c:488:6:Robot_ButtonLongPushed	8	static

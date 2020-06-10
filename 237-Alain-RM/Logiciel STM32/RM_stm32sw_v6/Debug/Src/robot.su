@@ -1,0 +1,9 @@
+robot.c:73:6:Robot_Init	136	static
+robot.c:244:6:Robot_Activate	16	static
+robot.c:254:6:Robot_Deactivate	16	static
+robot.c:264:5:Robot_ServoId2Idx	24	static
+robot.c:277:5:Robot_LegId2Idx	24	static
+robot.c:290:6:Robot_Unfold	16	static
+robot.c:322:6:Robot_Fold	16	static
+robot.c:336:6:Robot_MoveToStartPos	16	static
+robot.c:348:8:Robot_GetState	4	static
